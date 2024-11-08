@@ -1,0 +1,26 @@
+target C {
+    platform: {
+        name: "rp2040",
+        board: "pololu_3pi_2040_robot"
+    }, 
+    single-threaded: true,
+    }
+    
+    import LED from "lib/LED.lf"
+
+    preamble {=
+    #include <hardware/gpio.h>
+    #include <pico/stdlib.h>
+    #include <stdio.h>
+    =}
+
+    main reactor {
+        led = new LED();
+        timer t_check_LED(0,250ms)
+
+        reaction(t_check_LED) -> led.set {=
+            static bool state = false;
+            state = !state;
+            lf_set(led.set, state);
+        =}
+    }
