@@ -30,7 +30,7 @@ void _projwifi_mainreaction_function_0(void* instance_args) {
     gpio_set_dir(LED_PIN, GPIO_IN);
     action = blue;
     gpio_set_irq_enabled_with_callback(UART_RX, GPIO_IRQ_EDGE_FALL, true, external);
-    gpio.put(LED_PIN, true);
+    gpio_put(LED_PIN, true);
 }
 #include "include/api/set_undef.h"
 #include "include/api/set.h"
@@ -60,9 +60,9 @@ void _projwifi_mainreaction_function_1(void* instance_args) {
     
     // Check if pin voltage changed
     if (gpio_get(UART_RX)) {
-        gpio.put(LED_PIN, true);
+        gpio_put(LED_PIN, true);
     } else {
-        gpio.put(LED_PIN, false);
+        gpio_put(LED_PIN, false);
     }
 }
 #include "include/api/set_undef.h"

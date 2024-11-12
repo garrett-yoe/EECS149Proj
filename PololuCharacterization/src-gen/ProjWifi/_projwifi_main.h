@@ -2,15 +2,15 @@
 #define _PROJWIFI_MAIN_H
 #include "include/core/reactor.h"
 #include "_display.h"
-#ifndef TOP_LEVEL_PREAMBLE_1704942914_H
-#define TOP_LEVEL_PREAMBLE_1704942914_H
+#ifndef TOP_LEVEL_PREAMBLE_35874744_H
+#define TOP_LEVEL_PREAMBLE_35874744_H
+#include <pico/stdlib.h>
+#include <display.h>        // Do not use "display.h". Doesn't work.
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <hardware/gpio.h>
-#define UART_RX = 29;
-#define LED_PIN = 25;
-#include <pico/stdlib.h>
-#include <display.h>        // Do not use "display.h". Doesn't work.
+#define UART_RX 29
+#define LED_PIN 25
 #endif
 typedef struct {
     token_type_t type;

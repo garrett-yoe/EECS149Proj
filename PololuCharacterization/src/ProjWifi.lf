@@ -13,8 +13,8 @@ preamble {=
     #include <stdio.h>
     #include <pico/stdlib.h>
     #include <hardware/gpio.h>
-    #define UART_RX = 29;
-    #define LED_PIN = 25;
+    #define UART_RX 29
+    #define LED_PIN 25
 =}
 
 main reactor {
@@ -44,7 +44,7 @@ main reactor {
         gpio_set_dir(LED_PIN, GPIO_IN);
         action = blue;
         gpio_set_irq_enabled_with_callback(UART_RX, GPIO_IRQ_EDGE_FALL, true, external);
-        gpio.put(LED_PIN, true);
+        gpio_put(LED_PIN, true);
     =}
 
     reaction(blue) -> disp.line0, disp.line1 {=
@@ -58,9 +58,9 @@ main reactor {
 
         // Check if pin voltage changed
         if (gpio_get(UART_RX)) {
-            gpio.put(LED_PIN, true);
+            gpio_put(LED_PIN, true);
         } else {
-            gpio.put(LED_PIN, false);
+            gpio_put(LED_PIN, false);
         }
     =}
 }
