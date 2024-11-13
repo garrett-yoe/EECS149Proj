@@ -15,52 +15,71 @@ preamble {=
     #include <hardware/gpio.h>
     #define UART_RX 29
     #define LED_PIN 25
+    #define UART_ID uart2
 =}
 
 main reactor {
     preamble {=
-        static void *action;
-        interval_t prev = 0;
-        interval_t dif = 0;
+        // static void *action;
+        // interval_t prev = 0;
+        // interval_t dif = 0;
         
-        void external(uint gpio, uint32_t events) {
-            interval_t cur = lf_time_physical_elapsed();
-            dif = cur - prev;
-            if (dif > 200000000) {
-                lf_schedule(action, 0);
+        // void external(uint gpio, uint32_t events) {
+        //     interval_t cur = lf_time_physical_elapsed();
+        //     dif = cur - prev;
+        //     if (dif > 200000000) {
+        //         lf_schedule(action, 0);
+        //     }
+        //     prev = cur;
+        // }
+        void callback() {
+            while(uart_is_readable(UART_ID)) {
+                int32_t data;
+                uart_read_blocking(UART_ID, (uint8_t*)&data, sizeof(data));
+                if (data == 1) {
+                    gpio_put(LED_PIN, 1); 
+                }
+                else if (data == 0) {
+                    gpio_put(LED_PIN, 0);
+                }
             }
-            prev = cur;
         }
-        
     =}
     
     disp = new Display()
     physical action blue
+    timer t(0, 1ms)
 
     reaction(startup) -> blue {=
         gpio_init(UART_RX);
         gpio_set_dir(UART_RX, GPIO_IN);
         gpio_init(LED_PIN);
         gpio_set_dir(LED_PIN, GPIO_IN);
-        action = blue;
-        gpio_set_irq_enabled_with_callback(UART_RX, GPIO_IRQ_EDGE_FALL, true, external);
+        action = blue;              // this is only necessary to do if the callback function does not toggle LED 
+        irq_set_exclusive_handler(UART2_IRQ, callback);
+        irq_set_enabled(UART2_IRQ, true);
         gpio_put(LED_PIN, true);
     =}
 
-    reaction(blue) -> disp.line0, disp.line1 {=
-        // Check if received signal
-        static char buf1[17];
-        snprintf(buf1, 17, "Cmd Last Sent:");
-        lf_set(disp.line0, buf1);
-        static char buf[17];
-        snprintf(buf, 17, "%lld\n", dif);
-        lf_set(disp.line1, buf);
+    reaction(t) -> disp.line0, disp.line1 {=
+        // this reaction can be used for debugging the LED -- all else is handled in the callback function
+        
+        
+        
+        
+        // // Check if received signal
+        // static char buf1[17];
+        // snprintf(buf1, 17, "Cmd Last Sent:");
+        // lf_set(disp.line0, buf1);
+        // static char buf[17];
+        // snprintf(buf, 17, "%lld\n", dif);
+        // lf_set(disp.line1, buf);
 
-        // Check if pin voltage changed
-        if (gpio_get(UART_RX)) {
-            gpio_put(LED_PIN, true);
-        } else {
-            gpio_put(LED_PIN, false);
-        }
+        // // Check if pin voltage changed
+        // if (gpio_get(UART_RX)) {
+        //     gpio_put(LED_PIN, true);
+        // } else {
+        //     gpio_put(LED_PIN, false);
+        // }
     =}
 }
