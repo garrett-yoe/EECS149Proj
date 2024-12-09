@@ -1,0 +1,52 @@
+target C {
+    platform: {
+      name: "rp2040",
+      board: "pololu_3pi_2040_robot"
+    },
+    keepalive: true,
+    threading: false
+  }
+  
+  import Display from "lib/Display.lf"
+  
+  preamble {=
+    #include <stdio.h>
+    #include <pico/stdlib.h>
+    #include <hardware/gpio.h>
+    #include <hardware/uart.h>
+    #include <string.h>
+  
+    #define UART_ID uart0
+    #define BAUD_RATE 115200
+    #define UART_TX_PIN 28
+    #define UART_RX_PIN 29
+  =}
+  
+  main reactor {
+    preamble{=
+        float att = 0.0;
+    =}
+    timer t(0, 2000 ms)
+    state received: bool = false
+  
+    d = new Display()
+  
+    reaction(startup) {=
+        stdio_init_all();
+        gpio_init(PICO_DEFAULT_LED_PIN);
+        gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+        //UART setup
+        uart_init(UART_ID, BAUD_RATE);
+        gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+        gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+        uart_set_format(UART_ID, 8, 1, UART_PARITY_NONE);
+    =}
+  
+    reaction(t) -> d.line0 {=
+        static char buf0[17];
+        snprintf(buf0, 17, "attempt:%1.0f", att);
+        uart_puts(UART_ID, "polulu sent");
+        att++;
+        lf_set(d.line0, buf0);
+    =}
+  }

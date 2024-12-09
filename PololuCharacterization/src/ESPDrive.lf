@@ -1,0 +1,105 @@
+target C {
+  platform: {
+    name: "rp2040",
+    board: "pololu_3pi_2040_robot"
+  },
+  keepalive: true,
+  threading: false
+}
+
+import Display from "lib/Display.lf"
+import Motors from "lib/Motors.lf"
+
+preamble {=
+  #include <stdio.h>
+  #include <pico/stdlib.h>
+  #include <hardware/gpio.h>
+  #include <hardware/uart.h>
+  #include <string.h>
+
+  #define UART_ID uart0
+  #define BAUD_RATE 115200
+  #define UART_TX_PIN 28
+  #define UART_RX_PIN 29
+=}
+
+reactor UARTrec {
+  input rec: bool
+  output mess: string
+
+  motors = new Motors()
+
+  reaction(startup) -> mess, motors.left_power, motors.right_power{=
+    lf_set(mess, "WAITING");
+    lf_set(motors.left_power, 0.0f);
+    lf_set(motors.right_power, 0.0f);
+  =}
+
+  initial mode RECEIVING  {
+    reaction(rec) -> mess, motors.left_power, motors.right_power {=
+      lf_set(motors.left_power, 0.0f);
+      lf_set(motors.right_power, 0.0f);
+      static char uart_buf[17];
+      static int index = 0;
+      if(rec->value) {
+        while(uart_is_readable(UART_ID)) {
+          char let = uart_getc(UART_ID);
+          uart_buf[index] = let;
+          index++;
+        }
+        uart_buf[index] = '\0';
+        index = 0;
+        if (strcmp(uart_buf, "for")) {
+          lf_set(motors.left_power, 0.5f);
+          lf_set(motors.right_power, 0.5f);
+        } else if (strcmp(uart_buf, "rig")) {
+          lf_set(motors.left_power, 0.0f);
+          lf_set(motors.right_power, 0.5f);
+        } else if (strcmp(uart_buf, "lef")) {
+          lf_set(motors.left_power, 0.5f);
+          lf_set(motors.right_power, 0.0f);
+        } else {
+          lf_set(motors.left_power, 0.0f);
+          lf_set(motors.right_power, 0.0f);
+        }
+        lf_set(mess, uart_buf);
+        
+      }
+    =}
+  }
+}
+
+main reactor {
+  timer t(0, 2000 ms)
+  state received: bool = false
+
+  uart = new UARTrec()
+  d = new Display()
+  reaction(startup) {=
+      stdio_init_all();
+      gpio_init(PICO_DEFAULT_LED_PIN);
+      gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+      //UART setup
+      uart_init(UART_ID, BAUD_RATE);
+      gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+      gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+  =}
+
+  reaction(t) -> uart.rec, d.line0 {=
+    static char buf0[17];
+    if (uart_is_readable(UART_ID)) {
+      snprintf(buf0, 17, "SENT");
+      lf_set(uart.rec, true);
+    } else {
+      snprintf(buf0, 17, "Nothing");
+    }
+    lf_set(d.line0, buf0);
+  =}
+      
+  
+  reaction(uart.mess) -> d.line1 {=
+      static char buf0[17];
+      snprintf(buf0, 17, uart.mess->value);
+      lf_set(d.line1, buf0);
+  =}
+}
