@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(1)
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
@@ -18,7 +18,9 @@ while True:
     # Our operations on the frame come here
     hsv = cv.cvtColor(blur_frame, cv.COLOR_BGR2HSV)
     lower_blue = np.array([100, 50, 50])
-    upper_blue = np.array([140, 255, 255])
+    upper_blue = np.array([130, 255, 255])
+    lower_blue = np.array([5, 50, 50])
+    upper_blue = np.array([30, 255, 255])
     mask = cv.inRange(hsv, lower_blue, upper_blue)
     res = cv.bitwise_and(frame, frame, mask=mask)
     contours, hierarchy = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
