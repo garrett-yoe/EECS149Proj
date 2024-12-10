@@ -44,6 +44,23 @@ while True:
             cv.circle(frame, (cx, cy), 7, (0, 0, 255), -1)
             cv.putText(frame, name, (cx - 20, cy - 20),
                        cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+        convexHull = cv.convexHull(c)
+        cv.drawContours(frame, [convexHull], -1, (255, 0, 0), 2)
+
+        distances = np.zeros((len(convexHull), len(convexHull)))
+        for i in range(len(convexHull)):
+            for j in range(len(convexHull)):
+                distances[i, j] = np.linalg.norm(convexHull[i] - convexHull[j])
+
+        # Find the indices of the farthest points
+        max_distance = np.max(distances)
+        indices = np.where(distances == max_distance)
+        farthest_points = [convexHull[indices[0][0]], convexHull[indices[1][0]]]
+        print(farthest_points)
+        cv.line(frame, (farthest_points[0][0]), (farthest_points[1][0]), (0, 255, 0), thickness=3, lineType=8)
+        direction = 180/np.pi*np.arctan2(farthest_points[0][0][1]-farthest_points[1][0][1], farthest_points[0][0][0]-farthest_points[1][0][0])
+        print(direction)
         cv.drawContours(frame, c, -1, (0, 255, 0), 3)
 
     # Display the resulting frame
