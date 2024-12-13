@@ -12,15 +12,22 @@
   
   import Display from "lib/Display.lf"
   import Motors from "lib/Motors.lf"
+  //import IR from "lib/IR.lf" (NEED TO MAKE DRIVER TO ABSTRACT AWAY THE 7 INDIVIDUAL IR SENSORS INTO ONE)
   
-  reactor Robot {
+  reactor RobotWithAvoidance {
     input drive: bool      // Toggle mode.
+    input avoidGoAround: bool  //sent to one robot by supervising PC
+    input avoidReduceSpeed: bool  //sent to one robot by supervising PC
+    output returnToLine: bool  //set true by IR sensor measurements to indicate return to line following after avoidance routine
     output notify: string  // Notify of mode change.
     motors = new Motors()
+    // IR = new IR()
     reaction(startup) -> notify {=
       lf_set(notify, "INIT");
     =}
-  
+    reaction(startup) -> returnToLine {=
+      returnToLine.value = false;
+    =}
     initial mode STOPPED {
       reaction(drive) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
         if (drive->value) {
@@ -41,13 +48,89 @@
           lf_set(motors.right_power, 0);
         }
       =}
+      reaction(avoidGoAround) -> reset(AVOID_GO_AROUND), notify, motors.left_power, motors.right_power {=
+        if (avoidGoAround->value) {
+          lf_set_mode(AVOID_GO_AROUND);
+          lf_set(notify, "AVOID_GO_AROUND")
+          lf_set(motors.left_power, 0.1f);
+          lf_set(motors.right_power, -0.15f);
+        }
+      =}
+
+      //avoidReduceSpeed becomes true when the CV detects that the contours of both robots are below a determined threshold
+      reaction(avoidReduceSpeed) -> reset(AVOID_REDUCE_SPEED), notify, motors.left_power, motors.right_power {=
+        if (avoidReduceSpeed->value) {
+          lf_set_mode(AVOID_REDUCE_SPEED);
+          lf_set(notify, "AVOID_REDUCE_SPEED")
+          lf_set(motors.left_power, 0.05f);
+          lf_set(motors.right_power, 0.05f);
+        }
+      =}
+    }
+
+    //this mode must disable line-following (implement in a separate reactor than LineFollowing)
+    mode AVOID_GO_AROUND {
+      timer right_turn(250msec);
+      reaction(right_turn) -> motors.left_power, motors.right_power {=
+        lf_set(motors.left_power, 0.1f);
+        lf_set(motors.right_power, 0.1f);
+      =}
+      timer straight1(1sec);
+      reaction(straight1) -> motors.left_power, motors.right_power {=
+        lf_set(motors.left_power, -0.1f);
+        lf_set(motors.right_power, 0.1f);
+      =}
+      timer left_turn(250msec);
+      reaction(left_turn) -> motors.left_power, motors.right_power {=
+        lf_set(motors.left_power, 0.1f);
+        lf_set(motors.right_power, 0.1f);
+      =}
+      timer straight2(1sec);
+      reaction(straight2) -> motors.left_power, motors.right_power {=
+        lf_set(motors.left_power, -0.1f);
+        lf_set(motors.right_power, 0.1f);
+      =}
+      timer left_turn2(250msec);
+      reaction(left_turn2) -> motors.left_power, motors.right_power {=
+        lf_set(motors.left_power, 0.1f);
+        lf_set(motors.right_power, 0.1f);
+      =}
+      timer lineCheck(0, 1msec);
+      //once the photodiodes detect that the robot reaches a line after the avoidance routine, orient it to travel parallel to the path once again in the direction of the closest cargo, and return it to line following mode
+      // reaction(lineCheck) -> IR.trigger {=
+      //   lf_set(IR.trigger, true)
+      // =}
+      // reaction(IR.reflect) -> returnToLine {=
+      //   //if middle three IR sensors sense a line
+      //   if(IR.reflect->value[2] <= 50 && IR.reflect->value[3] <= 50 && IR.reflect->value[4] <= 50) {
+      //     returnToLine.value = true;
+      //   }
+      // =}
+      // reaction(returnToLine) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
+      //   if (returnToLine.value == true)
+      // =}
+
+    }
+
+    //this mode must be in the same reactor as LineFollowing
+    mode AVOID_REDUCE_SPEED {
+      //avoidReduceSpeed becomes false when the CV detects that the contours of both robots are above a determined threshold
+      reaction(avoidReduceSpeed) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
+        if (!avoidReduceSpeed->value) {   
+          lf_set_mode(DRIVING);
+          lf_set(notify, "DRIVING");
+          lf_set(motors.left_power, 0.1f);
+          lf_set(motors.right_power, 0.1f);
+        }
+      =}
+
     }
   }
   
   main reactor {
     timer t(0, 2 sec)
     state drive: bool = false
-    robot = new Robot()
+    robot = new RobotWithAvoidance()
     display = new Display()
     robot.notify -> display.line0
   
