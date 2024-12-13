@@ -12,22 +12,68 @@
   
   import Display from "lib/Display.lf"
   import Motors from "lib/Motors.lf"
+  
   //import IR from "lib/IR.lf" (NEED TO MAKE DRIVER TO ABSTRACT AWAY THE 7 INDIVIDUAL IR SENSORS INTO ONE)
   
+  preamble {=
+    #include "pico/stdlib/h"
+    #define IR_1 18
+    #define IR_2 19
+    #define IR_3 20
+    #define IR_4 21
+    #define IR_5 22
+    #define IR_6 23
+    #define IR_7 26
+  =}
+  
+  reactor IRSensorReader {
+    output IR_2_out: int
+    output IR_3_out: int
+    output IR_4_out: int
+    timer sampleIRs(0, 1msec)
+    reaction(sampleIRs) -> IR_2_out, IR_3_out, IR_4_out {=
+      int ir_2_state = gpio_get(IR_2);
+      int ir_3_state = gpio_get(IR_3);
+      int ir_4_state = gpio_get(IR_4);
+      lf_set(IR_2_out, ir_2_state);
+      lf_set(IR_3_out, ir_3_state);
+      lf_set(IR_4_out, ir_4_state);
+    =}
+  }
+
   reactor RobotWithAvoidance {
     input drive: bool      // Toggle mode.
+    input IR_2_val: int
+    input IR_3_val: int
+    input IR_4_val: int
     input avoidGoAround: bool  //sent to one robot by supervising PC
     input avoidReduceSpeed: bool  //sent to one robot by supervising PC
-    output returnToLine: bool  //set true by IR sensor measurements to indicate return to line following after avoidance routine
+    logical action returnToLine;  //set true by IR sensor measurements to indicate return to line following after avoidance routine
     output notify: string  // Notify of mode change.
     motors = new Motors()
     // IR = new IR()
     reaction(startup) -> notify {=
       lf_set(notify, "INIT");
+      gpio_init(IR_1);
+      gpio_set_dir(IR_1, GPIO_IN);
+      gpio_init(IR_2);
+      gpio_set_dir(IR_2, GPIO_IN);
+      gpio_init(IR_3);
+      gpio_set_dir(IR_3, GPIO_IN);
+      gpio_init(IR_4);
+      gpio_set_dir(IR_4, GPIO_IN);
+      gpio_init(IR_5);
+      gpio_set_dir(IR_5, GPIO_IN);
+      gpio_init(IR_6);
+      gpio_set_dir(IR_6, GPIO_IN);
+      gpio_init(IR_7);
+      gpio_set_dir(IR_7, GPIO_IN);
+
     =}
     reaction(startup) -> returnToLine {=
       returnToLine.value = false;
     =}
+    
     initial mode STOPPED {
       reaction(drive) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
         if (drive->value) {
@@ -97,18 +143,16 @@
       =}
       timer lineCheck(0, 1msec);
       //once the photodiodes detect that the robot reaches a line after the avoidance routine, orient it to travel parallel to the path once again in the direction of the closest cargo, and return it to line following mode
-      // reaction(lineCheck) -> IR.trigger {=
-      //   lf_set(IR.trigger, true)
-      // =}
-      // reaction(IR.reflect) -> returnToLine {=
-      //   //if middle three IR sensors sense a line
-      //   if(IR.reflect->value[2] <= 50 && IR.reflect->value[3] <= 50 && IR.reflect->value[4] <= 50) {
-      //     returnToLine.value = true;
-      //   }
-      // =}
-      // reaction(returnToLine) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
-      //   if (returnToLine.value == true)
-      // =}
+      reaction(IR_2_val, IR_3_val, IR_4_val) -> returnToLine {=
+         //if middle three IR sensors sense a line
+         if(IR_2_val->value && IR_3_val->value && IR_4_val->value) {
+           lf_schedule(returnToLine, 0);
+         }
+       =}
+       reaction(returnToLine) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
+         //read CV command to turn left or right to return path to cargo
+         
+      =}
 
     }
 
@@ -131,7 +175,11 @@
     timer t(0, 2 sec)
     state drive: bool = false
     robot = new RobotWithAvoidance()
+    IRSensor = new IRSensorReader()
     display = new Display()
+    IRSensor.IR_2_out -> robot.IR_2_val
+    IRSensor.IR_3_out -> robot.IR_3_val
+    IRSensor.IR_4_out -> robot.IR_4_val
     robot.notify -> display.line0
   
     reaction(t) -> robot.drive {=
