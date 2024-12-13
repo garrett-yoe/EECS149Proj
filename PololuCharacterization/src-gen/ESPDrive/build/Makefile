@@ -400,6 +400,30 @@ _motors.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ESPDrive.dir/build.make CMakeFiles/ESPDrive.dir/_motors.c.s
 .PHONY : _motors.c.s
 
+_robot.obj: _robot.c.obj
+.PHONY : _robot.obj
+
+# target to build an object file
+_robot.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ESPDrive.dir/build.make CMakeFiles/ESPDrive.dir/_robot.c.obj
+.PHONY : _robot.c.obj
+
+_robot.i: _robot.c.i
+.PHONY : _robot.i
+
+# target to preprocess a source file
+_robot.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ESPDrive.dir/build.make CMakeFiles/ESPDrive.dir/_robot.c.i
+.PHONY : _robot.c.i
+
+_robot.s: _robot.c.s
+.PHONY : _robot.s
+
+# target to generate assembly for a file
+_robot.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ESPDrive.dir/build.make CMakeFiles/ESPDrive.dir/_robot.c.s
+.PHONY : _robot.c.s
+
 _uartrec.obj: _uartrec.c.obj
 .PHONY : _uartrec.obj
 
@@ -2083,6 +2107,9 @@ help:
 	@echo "... _motors.obj"
 	@echo "... _motors.i"
 	@echo "... _motors.s"
+	@echo "... _robot.obj"
+	@echo "... _robot.i"
+	@echo "... _robot.s"
 	@echo "... _uartrec.obj"
 	@echo "... _uartrec.i"
 	@echo "... _uartrec.s"

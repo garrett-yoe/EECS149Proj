@@ -52,8 +52,9 @@ add_executable(
     lib/schedule.c
     _espdrive_main.c
     _uartrec.c
-    _motors.c
     _display.c
+    _robot.c
+    _motors.c
     ESPDrive.c
 )
 

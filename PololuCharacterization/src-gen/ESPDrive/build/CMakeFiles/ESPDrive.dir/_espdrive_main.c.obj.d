@@ -68,9 +68,9 @@ CMakeFiles/ESPDrive.dir/_espdrive_main.c.obj: \
  /home/foobar/pico-sdk/src/rp2040/hardware_regs/include/hardware/regs/dreq.h \
  /home/foobar/pico-sdk/src/rp2_common/pico_stdio_uart/include/pico/stdio_uart.h \
  /home/foobar/pico-sdk/src/rp2_common/pico_stdio_usb/include/pico/stdio_usb.h \
- /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/robot-lib/src/display.h \
  /usr/include/newlib/string.h /usr/include/newlib/sys/_locale.h \
  /usr/include/newlib/strings.h /usr/include/newlib/sys/string.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/robot-lib/src/display.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/../include/api/api.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/../include/core/reactor.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/../include/core/lf_types.h \
@@ -84,6 +84,7 @@ CMakeFiles/ESPDrive.dir/_espdrive_main.c.obj: \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/core/reactor.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/_display.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/_uartrec.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/_robot.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/_motors.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/robot-lib/src/motors.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/api/set.h \

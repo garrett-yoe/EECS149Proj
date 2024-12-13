@@ -30,7 +30,6 @@ CMakeFiles/ESPDrive.dir/_uartrec.c.obj: \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/core/tag.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/core/utils/vector.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/ESPDrive/UARTrec.h \
- /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/robot-lib/src/motors.h \
  /home/foobar/pico-sdk/src/common/pico_stdlib/include/pico/stdlib.h \
  /home/foobar/pico-sdk/src/common/pico_base/include/pico.h \
  /home/foobar/pico-sdk/src/common/pico_base/include/pico/types.h \
@@ -82,6 +81,5 @@ CMakeFiles/ESPDrive.dir/_uartrec.c.obj: \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/core/utils/util.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/_uartrec.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/core/reactor.h \
- /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/_motors.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/api/set.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/ESPDrive/include/api/set_undef.h

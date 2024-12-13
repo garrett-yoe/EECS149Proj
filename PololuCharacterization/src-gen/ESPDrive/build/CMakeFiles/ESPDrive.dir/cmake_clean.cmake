@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ESPDrive.dir/_espdrive_main.c.obj.d"
   "CMakeFiles/ESPDrive.dir/_motors.c.obj"
   "CMakeFiles/ESPDrive.dir/_motors.c.obj.d"
+  "CMakeFiles/ESPDrive.dir/_robot.c.obj"
+  "CMakeFiles/ESPDrive.dir/_robot.c.obj.d"
   "CMakeFiles/ESPDrive.dir/_uartrec.c.obj"
   "CMakeFiles/ESPDrive.dir/_uartrec.c.obj.d"
   "CMakeFiles/ESPDrive.dir/home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.c.obj"
