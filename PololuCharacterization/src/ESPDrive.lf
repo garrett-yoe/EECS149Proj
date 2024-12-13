@@ -61,106 +61,27 @@ reactor Robot {
     lf_set(notify, "START");
   =}
 
-  initial mode STOPPED {
-    reaction(com) -> reset(FORWARD), reset(RIGHT), reset(LEFT), notify, motors.left_power, motors.right_power {=
+  initial mode NEED_COMMAND {
+    reaction(com) -> notify, motors.left_power, motors.right_power {=
       if (strcmp(com->value, "for") == 0) {
-        lf_set_mode(FORWARD);
-        lf_set(notify, "STO FOR");
-        lf_set(motors.left_power, 0.1f);
-        lf_set(motors.right_power, 0.1f);
+        lf_set(notify, "DRIVE FOR");
+        lf_set(motors.left_power, 0.2f);
+        lf_set(motors.right_power, 0.2f);
       } else if (strcmp(com->value, "rig") == 0) {
-        lf_set_mode(RIGHT);
-        lf_set(notify, "STO RIG");
+        lf_set(notify, "DRIVE RIG");
         lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.1f);
+        lf_set(motors.right_power, 0.2f);
       } else if (strcmp(com->value, "lef") == 0) {
-        lf_set_mode(LEFT);
-        lf_set(notify, "STO LEF");
-        lf_set(motors.left_power, 0.1);
+        lf_set(notify, "DRIVE LEF");
+        lf_set(motors.left_power, 0.2f);
         lf_set(motors.right_power, 0.0f);
       } else {
         lf_set(notify, com->value);
         lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.0f); 
-      }
+        lf_set(motors.right_power, 0.0f);
+      } 
     =}
   }
-
-  mode FORWARD {
-    reaction(com) -> reset(STOPPED), reset(RIGHT), reset(LEFT), notify, motors.left_power, motors.right_power {=
-      if (strcmp(com->value, "sto") == 0) {
-        lf_set_mode(STOPPED);
-        lf_set(notify, "FOR STO");
-        lf_set(motors.left_power, 0.0);
-        lf_set(motors.right_power, 0.0f);
-      } else if (strcmp(com->value, "rig") == 0) {
-        lf_set_mode(RIGHT);
-        lf_set(notify, "FOR RIG");
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.1f);
-      } else if (strcmp(com->value, "lef") == 0) {
-        lf_set_mode(LEFT);
-        lf_set(notify, "FOR LEF");
-        lf_set(motors.left_power, 0.1);
-        lf_set(motors.right_power, 0.0f);
-      } else {
-        lf_set(notify, com->value);
-        lf_set(motors.left_power, 0.1f);
-        lf_set(motors.right_power, 0.1f); 
-      }
-    =}
-  }
-
-  mode RIGHT {
-    reaction(com) -> reset(FORWARD), reset(STOPPED), reset(LEFT), notify, motors.left_power, motors.right_power {=
-      if (strcmp(com->value, "for") == 0) {
-        lf_set_mode(FORWARD);
-        lf_set(notify, "RIG FOR");
-        lf_set(motors.left_power, 0.1f);
-        lf_set(motors.right_power, 0.1f);
-      } else if (strcmp(com->value, "sto") == 0) {
-        lf_set_mode(STOPPED);
-        lf_set(notify, "RIG STO");
-        lf_set(motors.left_power, 0.0);
-        lf_set(motors.right_power, 0.0f);
-      } else if (strcmp(com->value, "lef") == 0) {
-        lf_set_mode(LEFT);
-        lf_set(notify, "RIG LEF");
-        lf_set(motors.left_power, 0.1);
-        lf_set(motors.right_power, 0.0f);
-      } else {
-        lf_set(notify, com->value);
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.1f); 
-      }
-    =}
-  }
-
-  mode LEFT {
-    reaction(com) -> reset(FORWARD), reset(RIGHT), reset(STOPPED), notify, motors.left_power, motors.right_power {=
-      if (strcmp(com->value, "for") == 0) {
-        lf_set_mode(FORWARD);
-        lf_set(notify, "LEF FOR");
-        lf_set(motors.left_power, 0.1f);
-        lf_set(motors.right_power, 0.1f);
-      } else if (strcmp(com->value, "rig") == 0) {
-        lf_set_mode(RIGHT);
-        lf_set(notify, "LEF RIG");
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.1f);
-      } else if (strcmp(com->value, "sto") == 0) {
-        lf_set_mode(STOPPED);
-        lf_set(notify, "LEF STO");
-        lf_set(motors.left_power, 0.0);
-        lf_set(motors.right_power, 0.0f);
-      } else {
-        lf_set(notify, com->value);
-        lf_set(motors.left_power, 0.1f);
-        lf_set(motors.right_power, 0.0f); 
-      }
-    =}
-  }
-
 }
 
 main reactor {
@@ -171,7 +92,7 @@ main reactor {
   d = new Display()
   rob = new Robot()
 
-  rob.notify->d.line2
+  rob.notify->d.line1
   uart.mess->rob.com
 
   reaction(startup) {=
@@ -193,5 +114,6 @@ main reactor {
       snprintf(buf0, 17, "NO MESS");
     }
     lf_set(d.line0, buf0);
-  =}
+  =}   
+
 }
