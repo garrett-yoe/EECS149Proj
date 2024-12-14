@@ -98,4 +98,20 @@ void setup(){
 }
 
 void loop(){
+    // // CODE TO CHANGE
+    // // WAITING FOR COMMANDS FROM PY-SERIAL
+    // if (Serial.available() > sizeof(commands)) {
+    //   // reading bytes and transfer into our Message struct
+    //   uint8_t buffer[sizeof(commands)];
+    //   Serial.readBytes(buffer, sizeof(commands));  
+    //   // FORWARD BYTES TO POLULU ESP
+    //   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*) &buffer, sizeof(buffer));
+    //   if (result == ESP_OK) {
+    //     Serial.println("Message sent to ESP2 successfully");
+    //   } else {
+    //     Serial.println("Error sending message to ESP2");
+    //   }
+    //   // FORWARD TO ESP TEMPLATE
+    // }
+    // // CODE TO CHANGE
 }
