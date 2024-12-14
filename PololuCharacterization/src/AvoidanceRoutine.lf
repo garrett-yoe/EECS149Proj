@@ -16,7 +16,10 @@
   //import IR from "lib/IR.lf" (NEED TO MAKE DRIVER TO ABSTRACT AWAY THE 7 INDIVIDUAL IR SENSORS INTO ONE)
   
   preamble {=
-    #include "pico/stdlib/h"
+    #include "pico/stdlib.h"
+    #include "hardware/pwm.h"
+    #define SERVO_1 6
+    #define SERVO_2 7
     #define IR_1 18
     #define IR_2 19
     #define IR_3 20
@@ -46,14 +49,25 @@
     input IR_2_val: int
     input IR_3_val: int
     input IR_4_val: int
+    input grabObject: bool  //sent to robot by supervising PC
+    output objectGrabbed: bool  //sent to supervising PC to decrement state variables and send back a new path
     input avoidGoAround: bool  //sent to one robot by supervising PC
     input avoidReduceSpeed: bool  //sent to one robot by supervising PC
     logical action returnToLine;  //set true by IR sensor measurements to indicate return to line following after avoidance routine
     output notify: string  // Notify of mode change.
     motors = new Motors()
     // IR = new IR()
-    reaction(startup) -> notify {=
+    reaction(startup) -> notify, returnToLine {=
       lf_set(notify, "INIT");
+      returnToLine.value = false;
+
+      //set up PWM for both servos
+      gpio_set_function(SERVO_1);
+      gpio_set_function(SERVO_2);
+      uint slice_num = pwm_gpio_to_slice_num(SERVO_1);
+      pwm_set_wrap(slice_num, 1000);
+      pwm_set_clockdiv(slice_num, 2500);  //20ms (20000us) period on 125MHz clock speed
+
       gpio_init(IR_1);
       gpio_set_dir(IR_1, GPIO_IN);
       gpio_init(IR_2);
@@ -70,10 +84,6 @@
       gpio_set_dir(IR_7, GPIO_IN);
 
     =}
-    reaction(startup) -> returnToLine {=
-      returnToLine.value = false;
-    =}
-    
     initial mode STOPPED {
       reaction(drive) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
         if (drive->value) {
@@ -112,36 +122,56 @@
           lf_set(motors.right_power, 0.05f);
         }
       =}
+
+      reaction(grabObject) -> notify, motors.left_power, motors.right_power {=
+        if (grabObject->value)  {
+          pwm_set_chan_level(slice_num, PWM_CHAN_A, 500);   //actuate left servo to 90degrees (50% duty cycle)
+          pwm_set_chan_level(slice_num, PWM_CHAN_B, 500);   //actuate right servo to 90degrees (50% duty cycle)
+          pwm_set_enabled(slice_num, true);
+          sleep(2sec);
+          lf_set(grabObject, false);
+          lf_set(objectGrabbed, true);
+        }
+      =}
     }
 
     //this mode must disable line-following (implement in a separate reactor than LineFollowing)
     mode AVOID_GO_AROUND {
       timer right_turn(250msec);
+      timer straight1(0);
+      timer left_turn(0);
+      timer straight2(0);
+      timer left_turn2(0);
+      timer lineCheck(0, 1msec);
+
+      reaction(reset) {=
+        lf_schedule(right_turn);
+      =}
       reaction(right_turn) -> motors.left_power, motors.right_power {=
         lf_set(motors.left_power, 0.1f);
         lf_set(motors.right_power, 0.1f);
+        lf_schedule(straight1, 250msec);
       =}
-      timer straight1(1sec);
       reaction(straight1) -> motors.left_power, motors.right_power {=
         lf_set(motors.left_power, -0.1f);
         lf_set(motors.right_power, 0.1f);
+        lf_schedule(left_turn, 250msec);
       =}
-      timer left_turn(250msec);
       reaction(left_turn) -> motors.left_power, motors.right_power {=
         lf_set(motors.left_power, 0.1f);
         lf_set(motors.right_power, 0.1f);
+        lf_schedule(straight2, 1sec);
       =}
-      timer straight2(1sec);
       reaction(straight2) -> motors.left_power, motors.right_power {=
         lf_set(motors.left_power, -0.1f);
         lf_set(motors.right_power, 0.1f);
+        lf_schedule(left_turn2, 250msec);
       =}
-      timer left_turn2(250msec);
       reaction(left_turn2) -> motors.left_power, motors.right_power {=
         lf_set(motors.left_power, 0.1f);
         lf_set(motors.right_power, 0.1f);
       =}
-      timer lineCheck(0, 1msec);
+
       //once the photodiodes detect that the robot reaches a line after the avoidance routine, orient it to travel parallel to the path once again in the direction of the closest cargo, and return it to line following mode
       reaction(IR_2_val, IR_3_val, IR_4_val) -> returnToLine {=
          //if middle three IR sensors sense a line
@@ -151,7 +181,7 @@
        =}
        reaction(returnToLine) -> reset(DRIVING), notify, motors.left_power, motors.right_power {=
          //read CV command to turn left or right to return path to cargo
-         
+
       =}
 
     }
