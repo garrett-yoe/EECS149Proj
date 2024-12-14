@@ -16,39 +16,60 @@
   //import IR from "lib/IR.lf" (NEED TO MAKE DRIVER TO ABSTRACT AWAY THE 7 INDIVIDUAL IR SENSORS INTO ONE)
   
   preamble {=
+    #include <stdio.h>
     #include "pico/stdlib.h"
     #include "hardware/pwm.h"
+    #include "hardware/adc.h"
     #define SERVO_1 6
     #define SERVO_2 7
     #define IR_1 18
-    #define IR_2 19
-    #define IR_3 20
-    #define IR_4 21
+    #define IR_2 27
+    #define IR_3 28
+    #define IR_4 29
     #define IR_5 22
     #define IR_6 23
     #define IR_7 26
   =}
   
   reactor IRSensorReader {
+    output IR_1_out: int
     output IR_2_out: int
-    output IR_3_out: int
-    output IR_4_out: int
-    timer sampleIRs(0, 1msec)
-    reaction(sampleIRs) -> IR_2_out, IR_3_out, IR_4_out {=
-      int ir_2_state = gpio_get(IR_2);
-      int ir_3_state = gpio_get(IR_3);
-      int ir_4_state = gpio_get(IR_4);
-      lf_set(IR_2_out, ir_2_state);
-      lf_set(IR_3_out, ir_3_state);
-      lf_set(IR_4_out, ir_4_state);
+    output IR_3_out: uint16_t
+    output IR_4_out: uint16_t
+    output IR_5_out: uint16_t
+    output IR_6_out: int
+    output IR_7_out: int
+    timer sampleIRs(0, 1msec)   //on-board ADCs sample at 500kHz, but we will sample slower to avoid jerky movements
+    reaction(sampleIRs) -> IR_1_out, IR_2_out, IR_3_out, IR_4_out, IR_5_out, IR_6_out, IR_7_out {=
+      adc_select_input(1);
+      uint16_t ir_3_adc = adc_read();
+      adc_select_input(2);
+      uint16_t ir_4_adc = adc_read()
+      adc_select_input(3);
+      uint16_t ir_5_adc = adc_read()
+      lf_set(IR_2_out, ir_3_adc);
+      lf_set(IR_3_out, ir_4_adc);
+      lf_set(IR_4_out, ir_5_adc);
+      int ir_1_dig = gpio_get(IR_1);
+      lf_set(IR_1_out, ir_1_dig);
+      int ir_2_dig = gpio_get(IR_2);
+      lf_set(IR_2_out, ir_2_dig);
+      int ir_6_dig = gpio_get(IR_6);
+      lf_set(IR_6_out, ir_6_dig);
+      int ir_1_dig = gpio_get(IR_7);
+      lf_set(IR_7_out, ir_7_dig);
     =}
   }
 
   reactor RobotWithAvoidance {
     input drive: bool      // Toggle mode.
-    input IR_2_val: int
-    input IR_3_val: int
-    input IR_4_val: int
+    input IR_1_val: int    // for intersection detection, so take digital output of IR sensors
+    input IR_2_val: int    // for intersection detection
+    input IR_3_val: uint16_t    //for line following (PID), so take analog output of IR sensors
+    input IR_4_val: uint16_t    //for line following (PID)
+    input IR_5_val: uint16_t    // for line following (PID)
+    input IR_6_val: int    // for intersection detection
+    input IR_7_val: int    // for intersection detection
     input grabObject: bool  //sent to robot by supervising PC
     output objectGrabbed: bool  //sent to supervising PC to decrement state variables and send back a new path
     input avoidGoAround: bool  //sent to one robot by supervising PC
@@ -72,12 +93,9 @@
       gpio_set_dir(IR_1, GPIO_IN);
       gpio_init(IR_2);
       gpio_set_dir(IR_2, GPIO_IN);
-      gpio_init(IR_3);
-      gpio_set_dir(IR_3, GPIO_IN);
-      gpio_init(IR_4);
-      gpio_set_dir(IR_4, GPIO_IN);
-      gpio_init(IR_5);
-      gpio_set_dir(IR_5, GPIO_IN);
+      adc_gpio_init(IR_3);
+      adc_gpio_init(IR_4);
+      adc_gpio_init(IR_5);
       gpio_init(IR_6);
       gpio_set_dir(IR_6, GPIO_IN);
       gpio_init(IR_7);
@@ -94,7 +112,7 @@
         }
       =}
     }
-  
+    //add PID line following here
     mode DRIVING {
       reaction(drive) -> reset(STOPPED), notify, motors.left_power, motors.right_power {=
         if (!drive->value) {
@@ -123,6 +141,11 @@
         }
       =}
 
+      //implement PID control based on calibrations
+      reaction(IR_3_val, IR_4_val, IR_5_val) -> motors.left_power, motors.right_power {=
+        
+      =}
+
       reaction(grabObject) -> notify, motors.left_power, motors.right_power {=
         if (grabObject->value)  {
           pwm_set_chan_level(slice_num, PWM_CHAN_A, 500);   //actuate left servo to 90degrees (50% duty cycle)
@@ -135,6 +158,10 @@
       =}
     }
 
+    mode INTERSECTION {
+      
+    }
+
     //this mode must disable line-following (implement in a separate reactor than LineFollowing)
     mode AVOID_GO_AROUND {
       timer right_turn(250msec);
@@ -142,7 +169,6 @@
       timer left_turn(0);
       timer straight2(0);
       timer left_turn2(0);
-      timer lineCheck(0, 1msec);
 
       reaction(reset) {=
         lf_schedule(right_turn);
@@ -175,7 +201,7 @@
       //once the photodiodes detect that the robot reaches a line after the avoidance routine, orient it to travel parallel to the path once again in the direction of the closest cargo, and return it to line following mode
       reaction(IR_2_val, IR_3_val, IR_4_val) -> returnToLine {=
          //if middle three IR sensors sense a line
-         if(IR_2_val->value && IR_3_val->value && IR_4_val->value) {
+         if(IR_2_val->value <= 50 && IR_3_val->value <= 50 && IR_4_val->value <= 50) {
            lf_schedule(returnToLine, 0);
          }
        =}
@@ -207,9 +233,13 @@
     robot = new RobotWithAvoidance()
     IRSensor = new IRSensorReader()
     display = new Display()
+    IRSensor.IR_1_out -> robot.IR_1_val
     IRSensor.IR_2_out -> robot.IR_2_val
     IRSensor.IR_3_out -> robot.IR_3_val
     IRSensor.IR_4_out -> robot.IR_4_val
+    IRSensor.IR_5_out -> robot.IR_5_val
+    IRSensor.IR_6_out -> robot.IR_6_val
+    IRSensor.IR_7_out -> robot.IR_7_val
     robot.notify -> display.line0
   
     reaction(t) -> robot.drive {=
