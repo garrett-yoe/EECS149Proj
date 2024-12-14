@@ -1,0 +1,101 @@
+//CODE OF MIDDLE MAN ESP: RECV FROM COMP / SEND TO ESP/POLULU
+#include <WiFi.h>
+#include <esp_wifi.h>
+#include <esp_now.h>
+#include <string.h>
+
+// SOHUM ESP32-PICO-MINI-02 
+uint8_t espMac[] = {0xE8, 0x9F, 0x6D, 0x2F, 0xB2, 0xC4};
+
+// EACH ESP32 MAC ADDRESS ON THE POLULUS
+uint8_t macAddresses[][6] = {
+    {0x40, 0x22, 0xD8, 0x5F, 0xA9, 0xF0}, // Thomas ESP32 MAC
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // Garrett ESP32 MAC
+};
+const int numPolulus = sizeof(macAddresses) / sizeof(macAddresses[0]);
+
+// Message template across ESPS
+typedef struct commands {
+  char rob1Cmd[20];
+  char rob2Cmd[20];
+  uint count;
+} commands;
+// Var to Comp CMDS to send
+commands compCmds;
+// Recv CMDS
+commands rcvCmds;
+uint s_count = 0;
+
+// ADDING EACH ESP AS A PEER/ SETTING UP EACH COMMUNICATION TO POLULUS
+void connect_to_esps() {
+  for (int i = 0; i < numPolulus; i++) {
+    // Init connect
+    esp_now_peer_info_t peerInfo;
+    memset(&peerInfo, 0, sizeof(peerInfo));
+    memcpy(peerInfo.peer_addr, macAddresses[i], 6);
+    peerInfo.channel = 0;  
+    peerInfo.encrypt = false;
+    // Trying connect
+    if (esp_now_add_peer(&peerInfo) == ESP_OK) {
+        Serial.print("Successfully added peer: ");
+        for (int j = 0; j < 6; j++) {
+            Serial.printf("%02X", macAddresses[i][j]);
+            if (j < 5) Serial.print(":");
+        }
+        Serial.println();
+    } else {
+        Serial.print("Failed to add peer: ");
+        for (int j = 0; j < 6; j++) {
+            Serial.printf("%02X", macAddresses[i][j]);
+            if (j < 5) Serial.print(":");
+        }
+        Serial.println();
+    }
+  }
+}
+// ADDING EACH ESP AS A PEER/ SETTING UP EACH COMMUNICATION TO POLULUS
+
+// Callback After Send: prolly mainly for debugging
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  if (status == 0){
+    Serial.println( "Delivery Success");
+  }
+  else{
+    Serial.println("Delivery Fail");
+  }
+}
+
+// Callback After Recv: GET COMPCMD -> SEND TO ESP
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
+  memcpy(&rcvCmds, incomingData, sizeof(rcvCmds));
+  char buf[20] = "DONE ";
+  strcat(buf, rcvCmds.rob1Cmd);
+  strcpy(rcvCmds.rob1Cmd, buf);
+  Serial.println("SENDING BACK");
+  esp_err_t result = esp_now_send(macAddresses[0], (uint8_t *) &rcvCmds, sizeof(rcvCmds)); 
+  if (result == ESP_OK) {
+    Serial.println("MESSAGE SENT BACK");
+    s_count++;
+  } else {
+    Serial.println("NO MESSAGE SENT BACK");
+  }
+}
+
+void setup(){
+  Serial.begin(115200);
+  
+  // ESPNOW PROTOCOL SETUP
+  WiFi.mode(WIFI_STA);
+  WiFi.STA.begin();
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  connect_to_esps();
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
+}
+
+void loop(){
+}
