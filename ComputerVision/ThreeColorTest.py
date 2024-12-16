@@ -1,6 +1,9 @@
 import numpy as np
 import cv2 as cv
-
+import random
+import time
+last_time = time.time()
+a = 0
 #robot1 storage area
 
 
@@ -9,18 +12,31 @@ import cv2 as cv
 #robot2 storge area
 
 
+WIDTH = 10000
+HEIGHT = 10000
 
+cap = cv.VideoCapture(1, cv.CAP_DSHOW)
+cap.set(cv.CAP_PROP_FRAME_WIDTH, WIDTH)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 
-cap = cv.VideoCapture(1)
 robot_positions = [[0,0], [0, 0]]
 robot_directions = [0, 0]
 if not cap.isOpened():
     print("Cannot open camera")
     exit()
 while True:
+    commands = []
+    info = []
     # Capture frame-by-frame
     ret, frame = cap.read()
     frame = cv.rotate(frame, cv.ROTATE_180)
+
+    # Define the region of interest (ROI) coordinates
+    x1, y1 = 100, 0  # Top-left corner
+    x2, y2 = 1820, 1080  # Bottom-right corner
+
+    # Crop the image
+    frame = frame[y1:y2, x1:x2]
 
     # if frame is read correctly ret is True
     if not ret:
@@ -30,8 +46,8 @@ while True:
     blur_frame = cv.blur(frame, (9, 9))
     # Our operations on the frame come here
     hsv = cv.cvtColor(blur_frame, cv.COLOR_BGR2HSV)
-    lower_blue = np.array([100, 25, 25])
-    upper_blue = np.array([130, 255, 255])
+    lower_blue = np.array([150, 20, 20])
+    upper_blue = np.array([190, 255, 255])
     blue_mask = cv.inRange(hsv, lower_blue, upper_blue)
 
     lower_orange = np.array([5, 50, 50])
@@ -39,7 +55,7 @@ while True:
     orange_mask = cv.inRange(hsv, lower_orange, upper_orange)
 
     masks = [blue_mask, orange_mask]
-    names = ["blue", "orange"]
+    names = ["pink", "orange"]
     #identify robots
     #print(f"wtf {len(masks)}")
     for i in range(0, len(masks)):
@@ -58,7 +74,7 @@ while True:
             robot_positions[i]  = [cx, cy]
             cv.drawContours(frame, [c], -1, (0, 255, 0), 2)
             cv.circle(frame, (cx, cy), 7, (0, 0, 255), -1)
-            #cv.putText(frame, name, (cx - 20, cy - 20),
+            # cv.putText(frame, name, (cx - 20, cy - 20),
             #           cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         convexHull = cv.convexHull(c)
@@ -88,7 +104,7 @@ while True:
         direction = 180/np.pi*np.arctan2(endpoint1[1]-endpoint2[1], endpoint1[0]-endpoint2[0])
         direction_centers = 180/np.pi*np.arctan2(cy-center[1], cx-center[0])
 
-        if (abs(direction-direction_centers) < 20):
+        if (abs(direction-direction_centers) < 50):
             real_end = endpoint2
             direction+=180
             if (direction > 180):
@@ -110,36 +126,33 @@ while True:
 
 
 
-        #detrmine if the two robots are too close together
-    # min_distance = 300
-    # distance_between = np.sqrt((robot_positions[0][0]-robot_positions[1][0])**2+(robot_positions[0][1]-robot_positions[1][1])**2)
-    # if (distance_between < min_distance):
-    #     print("robots touching")
 
 
-    #identify if cargo is ready to be picked up:
-    lower_pink = np.array([140, 50, 50])
-    upper_pink = np.array([160, 255, 255])
-    pink_mask = cv.inRange(hsv, lower_pink, upper_pink)
 
-    res = cv.bitwise_and(frame, frame, mask=pink_mask)
-    contours, hierarchy = cv.findContours(pink_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    min_cargo_area = 50
-    filtered_contours = [contour for contour in contours if cv.contourArea(contour) > min_cargo_area]
 
-    height, width = frame.shape[:2]
-    size = 100
-    offset = 20
-
-    for cnt in filtered_contours:
-        M = cv.moments(cnt)
-        if M['m00'] != 0:
-            cx = int(M['m10'] / M['m00'])
-            cy = int(M['m01'] / M['m00'])
-            cv.drawContours(frame, [cnt], -1, (0, 255, 0), 2)
-            cv.circle(frame, (cx, cy), 7, (0, 0, 255), -1)
-            cv.putText(frame, "cargo", (cx - 20, cy - 20),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    # #identify if cargo is ready to be picked up:
+    # lower_pink = np.array([140, 50, 50])
+    # upper_pink = np.array([160, 255, 255])
+    # pink_mask = cv.inRange(hsv, lower_pink, upper_pink)
+    #
+    # res = cv.bitwise_and(frame, frame, mask=pink_mask)
+    # contours, hierarchy = cv.findContours(pink_mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    # min_cargo_area = 50
+    # filtered_contours = [contour for contour in contours if cv.contourArea(contour) > min_cargo_area]
+    #
+    # height, width = frame.shape[:2]
+    # size = 100
+    # offset = 20
+    #
+    # for cnt in filtered_contours:
+    #     M = cv.moments(cnt)
+    #     if M['m00'] != 0:
+    #         cx = int(M['m10'] / M['m00'])
+    #         cy = int(M['m01'] / M['m00'])
+    #         cv.drawContours(frame, [cnt], -1, (0, 255, 0), 2)
+    #         cv.circle(frame, (cx, cy), 7, (0, 0, 255), -1)
+    #         cv.putText(frame, "cargo", (cx - 20, cy - 20),
+    #                    cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
             # if (offset < cx < offset+size and offset < cy < offset+size):
             #     storage1_cargo = True
@@ -159,46 +172,197 @@ while True:
             #     pickup1_cargo = False
 
 
-    #storage robot 1
-    # cv.rectangle(frame, (offset, offset), (offset+size, offset+size), (0, 255, 0), 3)
-    # #storage robot 2
-    # cv.rectangle(frame, (offset, height-size-offset), (offset+size, height-offset), (0, 255, 0), 3)
-    # #pickup robot 2
-    # cv.rectangle(frame, (width-offset-size, offset), (width - offset, offset + size), (0, 255, 0), 3)
-    # #pickup robot 1
-    # cv.rectangle(frame, (width - offset - size, height - offset - size), (width - offset,  height - offset), (0, 255, 0), 3)
-    #
+
 
     #cargo pickup area
-    cv.putText(frame, "cargo pickup", (520, 360),
+    pt1 = (370, 30)
+    pt2 = (500, 300)
+    cv.putText(frame, "cargo pickup pink", pt1,
                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-    cv.rectangle(frame, (520, 360), (620,  460), (0, 255, 0), 3)
+    cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
 
-    if 520 < robot_positions[1][0] < 620 and 360 < robot_positions[1][1] < 460:
-        print("Pckup")
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        commands.append("pink close")
 
-    cv.rectangle(frame, (190, 360), (290,  460), (0, 255, 0), 3)
-    cv.putText(frame, "right int", (190, 360),
+    pt1 = (350, 900)
+    pt2 = (480, 1080)
+    cv.putText(frame, "cargo pickup orange", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        commands.append("orange close")
+
+    pt1 = (1230, 860)
+    pt2 = (1380, 1070)
+    cv.putText(frame, "storage pink", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
+
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        commands.append("pink open")
+
+
+    pt1 = (1300, 20)
+    pt2 = (1450, 280)
+    cv.putText(frame, "storage orange", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        commands.append("orange open")
+
+    pt1 = (32, 320)
+    pt2 = (280, 680)
+    cv.putText(frame, "intersection 1", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        info.append("orange at intersection 1")
+        if 140 < robot_directions[1] and -140 > robot_directions[1]:
+            commands.append("orange turn left")
+        elif 50 < robot_directions[1] < 130:
+            commands.append("orange right")
+
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        info.append("pink at intersection 1")
+        if 140 < robot_directions[0] and -140 > robot_directions[0]:
+            commands.append("pink turn right")
+        elif -50 > robot_directions[0] > -130:
+            commands.append("pink left")
+
+
+    pt1 = (1420, 320)
+    pt2 = (1710, 680)
+    cv.putText(frame, "intersection 2", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        info.append("orange at intersection 2")
+        if -40 < robot_directions[1] < 40:
+            commands.append("orange left")
+        elif -50 > robot_directions[1] > -130:
+            commands.append("orange right")
+
+
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        info.append("pink at intersection 2")
+        if -40 < robot_directions[0] < 40:
+            commands.append("pink turn right")
+        elif 50 < robot_directions[0] < 130:
+            commands.append("pink left")
+
+    pt1 = (560, 400)
+    pt2 = (1200, 680)
+    cv.putText(frame, "wait zone", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (255, 0, 0), 3)
+
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        pink_in_wait_zone = True
+    else:
+        pink_in_wait_zone = False
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        orange_in_wait_zone = True
+    else:
+        orange_in_wait_zone = False
+
+    pt1 = (40, 0)
+    pt2 = (250, 1080)
+    cv.putText(frame, "busy zone 1", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 0, 255), 3)
+
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        pink_in_busy_zone1 = True
+    else:
+        pink_in_busy_zone1 = False
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        orange_in_busy_zone1 = True
+    else:
+        orange_in_busy_zone1 = False
+
+    pt1 = (1550, 0)
+    pt2 = (1680, 1080)
+    cv.putText(frame, "busy zone 2", pt1,
+               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    cv.rectangle(frame, pt1, pt2, (0, 0, 255), 3)
+
+    if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
+        pink_in_busy_zone2 = True
+    else:
+        pink_in_busy_zone2 = False
+
+    if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
+        orange_in_busy_zone2 = True
+    else:
+        orange_in_busy_zone2 = False
+
+    if (orange_in_busy_zone1 or pink_in_busy_zone1):
+        if (orange_in_wait_zone):
+            if (abs(robot_directions[1]) > 150):
+                commands.append("orange stop")
+        if (pink_in_wait_zone):
+            if (abs(robot_directions[0]) > 150):
+                commands.append("pink stop")
+
+    if (orange_in_busy_zone2 or pink_in_busy_zone2):
+        if (orange_in_wait_zone):
+            if (abs(robot_directions[1]) < 40):
+                commands.append("orange stop")
+        if (pink_in_wait_zone):
+            if (abs(robot_directions[0]) < 40):
+                commands.append("pink stop")
+
+
+
+
+
+    # detrmine if the two robots are too close together and need to pass
+    min_distance = 350
+    distance_between = np.sqrt(
+        (robot_positions[0][0] - robot_positions[1][0]) ** 2 + (robot_positions[0][1] - robot_positions[1][1]) ** 2)
+    info.append(f"dis {distance_between}")
+
+    if (distance_between < min_distance):
+
+        info.append("robots touching")
+        VAL = (robot_directions[0] - robot_directions[1]) % 360
+        info.append(str(VAL))
+        if (140 < VAL < 220):
+            if (robot_positions[0][0] < robot_positions[1][0] and abs(robot_directions[0]) > 150 or
+            robot_positions[0][0] > robot_positions[1][0] and abs(robot_directions[0]) < 30):
+                pass
+            else:
+                if (abs(robot_positions[0][0] - 1920 / 2) < abs(robot_positions[1][0] - 1920 / 2)):
+                    a = 0
+                else:
+                    a = 1
+                    info.append("robots avoiding")
+                commands.append(f"{names[a]} stop, {names[1 - a]} pass")
+                last_time = time.time()
+        else:
+            info.append("robot passing")
+            if (abs(robot_directions[0]) > 150):
+                if (robot_positions[0][0] > robot_positions[1][0]):
+                    commands.append("pink pass")
+                else:
+                    commands.append("orange pass")
+            elif (abs(robot_directions[0] < 30)):
+                if (robot_positions[0][0] > robot_positions[1][0]):
+                    commands.append("orange pass")
+                else:
+                    commands.append("pink pass")
+
+    cv.putText(frame, ' '.join(commands), (10, 10),
                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-    if 190 < robot_positions[1][0] < 290 and 290 < robot_positions[1][1] < 460:
-        print("Right Intersection")
-
-    cv.rectangle(frame, (90, 360), (190, 460), (0, 255, 0), 3)
-    cv.putText(frame, "left int", (90, 360),
+    cv.putText(frame, ' '.join(info), (700, 200),
                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
-    if 90 < robot_positions[1][0] < 190 and 360 < robot_positions[1][1] < 460:
-        print("Left Intersection")
-
-    cv.rectangle(frame, (0, 150), (120, 250), (0, 255, 0), 3)
-    cv.putText(frame, "dropoff", (0, 120),
-               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
-    if 0 < robot_positions[1][0] < 120 and 150 < robot_positions[1][1] < 250:
-        print("Dropoff")
-
-
 
     #write logic for sending commands to robots here:
     # if (pickup1_cargo):
@@ -207,6 +371,7 @@ while True:
 
 
     # Display the resulting frame
+    print(commands)
     cv.imshow('frame', frame)
     #cv.imshow('mask', blue_mask)
     #cv.imshow('res', res)
