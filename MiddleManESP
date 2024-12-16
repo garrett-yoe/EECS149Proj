@@ -1,8 +1,10 @@
-//CODE OF MIDDLE MAN ESP: RECV FROM COMP / SEND TO ESP/POLULU
+//CODE OF MIDDLE MAN ESP: REC FROM COMP / SEND TO ESP/POLULU
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_now.h>
 #include <string.h>
+#include <HardwareSerial.h>
+#include "esp_log.h"
 
 // SOHUM ESP32-PICO-MINI-02 
 uint8_t espMac[] = {0xE8, 0x9F, 0x6D, 0x2F, 0xB2, 0xC4};
@@ -16,15 +18,10 @@ const int numPolulus = sizeof(macAddresses) / sizeof(macAddresses[0]);
 
 // Message template across ESPS
 typedef struct commands {
-  char rob1Cmd[20];
-  char rob2Cmd[20];
-  uint count;
+  char rob1Cmd[50];
+  char rob2Cmd[50];
 } commands;
-// Var to Comp CMDS to send
-commands compCmds;
-// Recv CMDS
-commands rcvCmds;
-uint s_count = 0;
+
 
 // ADDING EACH ESP AS A PEER/ SETTING UP EACH COMMUNICATION TO POLULUS
 void connect_to_esps() {
@@ -37,19 +34,9 @@ void connect_to_esps() {
     peerInfo.encrypt = false;
     // Trying connect
     if (esp_now_add_peer(&peerInfo) == ESP_OK) {
-        Serial.print("Successfully added peer: ");
-        for (int j = 0; j < 6; j++) {
-            Serial.printf("%02X", macAddresses[i][j]);
-            if (j < 5) Serial.print(":");
-        }
-        Serial.println();
+      Serial.println("added Peer");
     } else {
-        Serial.print("Failed to add peer: ");
-        for (int j = 0; j < 6; j++) {
-            Serial.printf("%02X", macAddresses[i][j]);
-            if (j < 5) Serial.print(":");
-        }
-        Serial.println();
+      Serial.println("Failed to add peer: ");
     }
   }
 }
@@ -57,34 +44,17 @@ void connect_to_esps() {
 
 // Callback After Send: prolly mainly for debugging
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  if (status == 0){
-    Serial.println( "Delivery Success");
-  }
-  else{
-    Serial.println("Delivery Fail");
-  }
 }
 
-// Callback After Recv: GET COMPCMD -> SEND TO ESP
+
+commands espCMDS;
+// Recv Callback FROM ESPNOW: GET COMPCMD -> SEND TO ESP
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
-  memcpy(&rcvCmds, incomingData, sizeof(rcvCmds));
-  char buf[20] = "DONE ";
-  strcat(buf, rcvCmds.rob1Cmd);
-  strcpy(rcvCmds.rob1Cmd, buf);
-  Serial.println("SENDING BACK");
-  esp_err_t result = esp_now_send(macAddresses[0], (uint8_t *) &rcvCmds, sizeof(rcvCmds)); 
-  if (result == ESP_OK) {
-    Serial.println("MESSAGE SENT BACK");
-    s_count++;
-  } else {
-    Serial.println("NO MESSAGE SENT BACK");
-  }
+  Serial.println("MM: ESP SENT TO POLULU");
 }
 
 void setup(){
   Serial.begin(115200);
-  
   // ESPNOW PROTOCOL SETUP
   WiFi.mode(WIFI_STA);
   WiFi.STA.begin();
@@ -97,21 +67,32 @@ void setup(){
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 }
 
+// reading bytes and transfer into our Message struct
+// uint8_t buffer[sizeof(commands)];
+// Serial.readBytes(buffer, sizeof(commands));  
+// FORWARD BYTES TO POLULU ESP
+// esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*) &buffer, sizeof(buffer));
+// FORWARD TO ESP TEMPLATE
+
 void loop(){
-    // // CODE TO CHANGE
-    // // WAITING FOR COMMANDS FROM PY-SERIAL
-    // if (Serial.available() > sizeof(commands)) {
-    //   // reading bytes and transfer into our Message struct
-    //   uint8_t buffer[sizeof(commands)];
-    //   Serial.readBytes(buffer, sizeof(commands));  
-    //   // FORWARD BYTES TO POLULU ESP
-    //   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*) &buffer, sizeof(buffer));
-    //   if (result == ESP_OK) {
-    //     Serial.println("Message sent to ESP2 successfully");
-    //   } else {
-    //     Serial.println("Error sending message to ESP2");
-    //   }
-    //   // FORWARD TO ESP TEMPLATE
-    // }
-    // // CODE TO CHANGE
+  //STOPS FEEDBACK CURRENT LOG STATE
+  esp_log_level_set("*", ESP_LOG_ERROR);
+
+  // WAITING FOR COMMANDS FROM PY-SERIAL
+  if (Serial.available() > sizeof(commands)) {
+    uint8_t buffer[200];
+    Serial.readBytes((char *)buffer, sizeof(commands));
+    commands rcvCmds;
+    memcpy(rcvCmds.rob1Cmd, buffer, 50);
+    memcpy(rcvCmds.rob2Cmd, buffer + 50, 50);
+    rcvCmds.rob1Cmd[49] = '\0';
+    rcvCmds.rob2Cmd[49] = '\0';
+    Serial.print("R1 CMD: ");
+    Serial.println(rcvCmds.rob1Cmd);
+    Serial.print("R2 CMD: ");
+    Serial.println(rcvCmds.rob2Cmd);
+
+    esp_now_send(macAddresses[0], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
+
+  }
 }
