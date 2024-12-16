@@ -1,0 +1,7 @@
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/pioasm.dir
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/edit_cache.dir
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/list_install_components.dir
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/install.dir
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/install/local.dir
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm/CMakeFiles/install/strip.dir

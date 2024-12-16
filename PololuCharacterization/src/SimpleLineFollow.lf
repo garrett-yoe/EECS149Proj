@@ -1,0 +1,296 @@
+/**
+ * Template for robot driving lab exercises. This template just periodically switches between a
+ * STOPPED and a DRIVING mode, updating the LCD display on each change of mode.
+ */
+ target C {
+    platform: {
+      name: "rp2040",
+      board: "pololu_3pi_2040_robot"
+    },
+    single-threaded: true
+  }
+  
+  import Display from "lib/Display.lf"
+  import Motors from "lib/Motors.lf"
+  import Encoders from "lib/Encoders.lf"
+  import GyroAngle from "lib/IMU.lf"
+  
+  //import IR from "lib/IR.lf" (NEED TO MAKE DRIVER TO ABSTRACT AWAY THE 7 INDIVIDUAL IR SENSORS INTO ONE)
+  
+  preamble {=
+    #include <stdio.h>
+    #include "pico/stdlib.h"
+    #include "hardware/adc.h"
+    #define IR_1 26
+    #define IR_LEFT 23
+    #define IR_RIGHT 16
+    #include <math.h>
+    static float start_angle;
+    static float start_dist;
+
+  =}
+
+reactor AngleToDistance {
+  e = new Encoders()
+  output left_distance:float
+  output right_distance:float
+  timer t(0, 10msec)
+
+  reaction(t) -> e.trigger {=
+      lf_set(e.trigger, true);
+    =}
+  reaction(e.left) -> left_distance {=
+      lf_set(left_distance, (3.175*M_PI*e.left->value) / 360);
+  =} 
+  reaction(e.right) -> right_distance {=
+      lf_set(right_distance, (3.175*M_PI*e.right->value) / 360);
+  =} 
+
+}
+  
+  reactor IRSensorReader {
+    output IR_1_out: uint16_t
+    output IR_LEFT_out: bool
+    output IR_RIGHT_out: bool
+    output notify1: string  // ADC Reading
+
+    timer sampleIRs(0, 10msec)   //on-board ADCs sample at 500kHz, but we will sample slower to avoid jerky movements
+    reaction(startup) {=
+    stdio_init_all();
+        gpio_init(IR_1);
+        gpio_disable_pulls(IR_1);
+        gpio_set_function(IR_1, GPIO_FUNC_NULL);
+        hw_clear_bits(&padsbank0_hw->io[IR_1], PADS_BANK0_GPIO0_IE_BITS);
+        adc_init();
+        adc_gpio_init(IR_1);
+        gpio_init(IR_LEFT);
+        gpio_set_dir(IR_LEFT, GPIO_IN);
+        gpio_init(IR_RIGHT);
+        gpio_set_dir(IR_RIGHT, GPIO_IN);
+    =}
+    
+    reaction(sampleIRs) -> IR_1_out {=
+        adc_select_input(0);
+        uint16_t ir_1_adc = adc_read();
+       lf_set(IR_1_out, ir_1_adc);
+      //  static char buf0[17];    
+      //   snprintf(buf0, 17, "A: %d", ir_1_adc);
+      //   lf_set(notify1, buf0); 
+    //    lf_set(notify1, "DEBUG");  
+    //lf_set(IR_1_out, 100);
+    =}
+    reaction(sampleIRs) -> IR_LEFT_out {=
+      uint32_t mask = 1ul << IR_LEFT;
+      lf_set(IR_LEFT_out, sio_hw->gpio_in & mask);
+    =}
+    reaction(sampleIRs) -> IR_RIGHT_out {=
+      uint32_t mask = 1ul << IR_RIGHT;
+      lf_set(IR_RIGHT_out, sio_hw->gpio_in & mask);
+    =}
+  }
+  
+
+  reactor RobotLineFollower {
+    input drive: bool
+    input IR_1_val: uint16_t // Line Following Sensor Value
+    input IR_LEFT_val: bool
+    input IR_RIGHT_val: bool
+    output notify1: string  // ADC Reading
+    output notify2: string // Left Motor Power
+    output notify3: string // Right Motor Power
+    output notify4: string // LR Sensors
+    motors = new Motors()
+    state next_turn: int //0 = wait for computer, -1 = left turn, 1 = right turn
+    // IR = new IR()
+
+    gyro = new GyroAngle()
+    a_to_d = new AngleToDistance()
+    timer t(0, 1 ms)
+
+    reaction(t) -> gyro.trigger{=
+      lf_set(gyro.trigger, true);
+    =}
+
+    reaction(startup) -> notify1 {=
+      lf_set(notify1, "INIT");
+      
+    =}
+    // notify2, notify3, motors.left_power, motors.right_power
+    initial mode DRIVING {
+      reaction(IR_1_val, IR_LEFT_val, IR_RIGHT_val, a_to_d.left_distance) -> reset(SHORT_STRAIGHT), notify1, notify2, notify3, notify4, motors.left_power, motors.right_power {=
+            
+            int median_IR_val = 500;
+            float P = 0.025/350.0*3;
+            int real_IR_val = IR_1_val->value;
+            float left_motor_power = 0.15+(real_IR_val-median_IR_val)*P;
+            float right_motor_power = 0.15-(real_IR_val-median_IR_val)*P;
+
+            lf_set(motors.left_power, left_motor_power);
+            lf_set(motors.right_power, right_motor_power);
+
+            static char buf0[17];
+            static char buf1[17];
+            static char buf2[17];
+            static char buf3[17];
+            snprintf(buf0, 17, "A: %d", real_IR_val);
+            lf_set(notify1, buf0);  
+            snprintf(buf1, 17, "left: %f", left_motor_power);
+            lf_set(notify2, buf1);  
+            snprintf(buf2, 17, "right: %f", right_motor_power);
+            lf_set(notify3, buf2);
+            snprintf(buf3, 17, "l: %d, r: %d", IR_LEFT_val->value, IR_RIGHT_val->value);
+            lf_set(notify4, buf3);
+            if (IR_LEFT_val->value  || IR_RIGHT_val->value) {
+              lf_set_mode(SHORT_STRAIGHT);
+              lf_set(motors.left_power, 0);
+              lf_set(motors.right_power, 0);
+              start_dist = a_to_d.left_distance->value;
+            }           
+
+      =}
+      
+    }
+
+    mode SHORT_STRAIGHT {
+      reaction(a_to_d.left_distance, IR_LEFT_val, IR_RIGHT_val) -> reset(MEDIUM_STRAIGHT), notify1, notify2, notify4, motors.left_power, motors.right_power {=
+        lf_set(notify1, "SHORT STRAIGHT");
+        static char buf1[17];
+        snprintf(buf1, 17, "A: %f", a_to_d.left_distance->value - start_dist);
+        lf_set(notify2, buf1);
+        lf_set(motors.left_power, 0.075);
+        lf_set(motors.right_power, 0.075);  
+        
+        if (a_to_d.left_distance->value - start_dist>1.5) {
+          static char buf3[17];
+          snprintf(buf3, 17, "l: %d, r: %d", IR_LEFT_val->value, IR_RIGHT_val->value);
+          lf_set(notify4, buf3);
+          if ((IR_LEFT_val->value) && !(IR_RIGHT_val->value)) {
+            self->next_turn = -1; //left turn
+          } else if (!(IR_LEFT_val->value) && (IR_RIGHT_val->value)) {
+            self->next_turn = 1; //right turn
+          } else {
+            self->next_turn = 0; //wait for computer
+          }
+          start_dist = a_to_d.left_distance->value;
+          lf_set(motors.left_power, 0);
+          lf_set(motors.right_power, 0);
+          lf_set_mode(MEDIUM_STRAIGHT);
+          
+        }
+        
+        
+      =}
+    }
+
+    mode MEDIUM_STRAIGHT {
+      reaction(a_to_d.left_distance, gyro.z) -> reset(WAITING), reset(LEFT_TURN), reset(RIGHT_TURN), notify1, notify2, motors.left_power, motors.right_power {=
+        
+        if (self->next_turn  == -1) {
+          lf_set(notify1, "MS LEFT");
+
+          }
+          else if (self->next_turn == 1) {
+            lf_set(notify1, "MS RIGHT");
+
+          }
+          else {
+            lf_set(notify1, "MS WAIT");
+
+          }
+
+        static char buf1[17];
+        snprintf(buf1, 17, "A: %f", a_to_d.left_distance->value - start_dist);
+        lf_set(notify2, buf1);
+        lf_set(motors.left_power, 0.15);
+          lf_set(motors.right_power, 0.15);  
+        if (a_to_d.left_distance->value - start_dist>7) {
+          
+          if (self->next_turn  == -1) {
+            lf_set_mode(LEFT_TURN);
+            lf_set(motors.left_power, 0);
+          lf_set(motors.right_power, 0);
+            lf_set(motors.left_power, -0.2);
+            lf_set(motors.right_power, 0.2);
+            start_angle = gyro.z->value;
+          }
+          else if (self->next_turn == 1) {
+            lf_set(motors.left_power, 0);
+          lf_set(motors.right_power, 0);
+            lf_set(motors.left_power, 0.2);
+            lf_set(motors.right_power, -0.2);
+            lf_set_mode(RIGHT_TURN);
+            start_angle = gyro.z->value;
+          }
+          else {
+            lf_set(motors.left_power, 0);
+            lf_set(motors.right_power, 0);
+            start_angle = gyro.z->value;
+            lf_set_mode(WAITING);
+          }
+
+        }
+      =}
+    }
+
+    mode LEFT_TURN {
+      reaction(a_to_d.left_distance, gyro.z) -> notify1, notify2, reset(DRIVING) {=
+        lf_set(notify1, "LEFT");
+        static char buf[17];
+        snprintf(buf, 17, "angle: %f, tot: %f", start_angle - gyro.z->value );
+        lf_set(notify2, buf);
+        if (start_angle - gyro.z->value < -70) {
+          lf_set_mode(DRIVING);
+        }
+      =}
+    }
+
+    mode RIGHT_TURN {
+      reaction(a_to_d.left_distance, gyro.z) -> notify1, notify2, reset(DRIVING) {=
+        lf_set(notify1, "RIGHT");
+        static char buf[17];
+        snprintf(buf, 17, "angle: %f, tot: %f", start_angle - gyro.z->value );
+        lf_set(notify2, buf);
+        if (start_angle - gyro.z->value > 70) {
+          lf_set_mode(DRIVING);
+        }
+
+      =}
+    }
+
+    mode WAITING {
+      reaction(a_to_d.left_distance) -> notify1, notify2, reset(DRIVING) {=
+        lf_set(notify1, "WAITING");
+
+      =}
+    }
+
+
+
+  }
+  
+  main reactor {
+    timer t(0, 50msec)
+    state drive: bool = true
+    robot = new RobotLineFollower()
+    IRSensor = new IRSensorReader()
+    display = new Display()
+    IRSensor.IR_1_out -> robot.IR_1_val
+    IRSensor.IR_LEFT_out -> robot.IR_LEFT_val
+    IRSensor.IR_RIGHT_out -> robot.IR_RIGHT_val
+    robot.notify1 -> display.line0
+    robot.notify2 -> display.line1
+    robot.notify3 -> display.line2
+    robot.notify4 -> display.line3
+  
+    // reaction(t) -> robot.drive, display.line0, display.line1 {=
+    //   //lf_set(robot.drive, self->drive);
+    //   lf_set(display.line0, "HELP"); 
+    // =}
+
+    // reaction(t) -> display.line0 {=
+    // //lf_set(robot.drive, self->drive);
+    //     lf_set(display.line0, "HELP"); 
+    // =}
+  }
+  
+  

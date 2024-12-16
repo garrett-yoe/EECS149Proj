@@ -1,0 +1,5 @@
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm-install/pioasm/pioasm
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm-install/pioasm/pioasmTargets.cmake
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm-install/pioasm/pioasmTargets-release.cmake
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm-install/pioasm/pioasmConfig.cmake
+/mnt/c/Users/gyoe4/EECS149Proj/PololuCharacterization/src-gen/RobotTemplate/build/pioasm-install/pioasm/pioasmConfigVersion.cmake
