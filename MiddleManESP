@@ -67,21 +67,33 @@ void setup(){
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 }
 
+bool handshake = false;
+commands rcvCmds;
+
 void loop(){
   //STOPS FEEDBACK CURRENT LOG STATE
   esp_log_level_set("*", ESP_LOG_ERROR);
-  //Initialize Cmds
-  commands rcvCmds;
-  // WAITING FOR COMMANDS FROM PY-SERIAL
-  if (Serial.available() > sizeof(commands)) {
-    Serial.readBytes((char *)&rcvCmds, sizeof(commands));
-    rcvCmds.rob1Cmd[49] = '\0';
-    rcvCmds.rob2Cmd[49] = '\0';
-    Serial.print("Told R1: ");
-    Serial.println(rcvCmds.rob1Cmd);
-    Serial.print("Told R2: ");
-    Serial.println(rcvCmds.rob2Cmd);
-    // FINAL -> For loop, send rob_Idx_Cmd to macAddress[Idx]
-    esp_Lnow_send(macAddresses[0], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
+  if (!handshake) {
+    if (Serial.available()) {
+      static char buf[20];
+      int bytesRead = Serial.readBytes(buf, sizeof(buf) - 1);
+      buf[bytesRead] = '\0';
+      if (strcmp(buf, "connect") == 0) {
+        Serial.println("ready");
+        handshake = true;
+      }
+    }
+  } else {
+    if (Serial.available() > sizeof(commands)) {
+      Serial.readBytes((char *)&rcvCmds, sizeof(commands));
+      rcvCmds.rob1Cmd[49] = '\0';
+      rcvCmds.rob2Cmd[49] = '\0';
+      Serial.print("Told R1: ");
+      Serial.println(rcvCmds.rob1Cmd);
+      Serial.print("Told R2: ");
+      Serial.println(rcvCmds.rob2Cmd);
+      // FINAL -> For loop, send rob_Idx_Cmd to macAddress[Idx]
+      esp_now_send(macAddresses[0], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
+    }
   }
 }
