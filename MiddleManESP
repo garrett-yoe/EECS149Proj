@@ -67,32 +67,21 @@ void setup(){
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 }
 
-// reading bytes and transfer into our Message struct
-// uint8_t buffer[sizeof(commands)];
-// Serial.readBytes(buffer, sizeof(commands));  
-// FORWARD BYTES TO POLULU ESP
-// esp_err_t result = esp_now_send(broadcastAddress, (uint8_t*) &buffer, sizeof(buffer));
-// FORWARD TO ESP TEMPLATE
-
 void loop(){
   //STOPS FEEDBACK CURRENT LOG STATE
   esp_log_level_set("*", ESP_LOG_ERROR);
-
+  //Initialize Cmds
+  commands rcvCmds;
   // WAITING FOR COMMANDS FROM PY-SERIAL
   if (Serial.available() > sizeof(commands)) {
-    uint8_t buffer[200];
-    Serial.readBytes((char *)buffer, sizeof(commands));
-    commands rcvCmds;
-    memcpy(rcvCmds.rob1Cmd, buffer, 50);
-    memcpy(rcvCmds.rob2Cmd, buffer + 50, 50);
+    Serial.readBytes((char *)&rcvCmds, sizeof(commands));
     rcvCmds.rob1Cmd[49] = '\0';
     rcvCmds.rob2Cmd[49] = '\0';
-    Serial.print("R1 CMD: ");
+    Serial.print("Told R1: ");
     Serial.println(rcvCmds.rob1Cmd);
-    Serial.print("R2 CMD: ");
+    Serial.print("Told R2: ");
     Serial.println(rcvCmds.rob2Cmd);
-
-    esp_now_send(macAddresses[0], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
-
+    // FINAL -> For loop, send rob_Idx_Cmd to macAddress[Idx]
+    esp_Lnow_send(macAddresses[0], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
   }
 }
