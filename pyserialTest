@@ -1,0 +1,57 @@
+import serial
+import time
+import struct
+
+# Specify the COM port and baud rate
+port = "COM9"
+baud_rate = 115200  # Make sure this matches the ESP settings
+
+# Open the serial port
+try:
+    ser = serial.Serial('COM9', baud_rate, timeout = 3)
+except serial.SerialException as e:
+    print(f"No connecting: {e}")
+
+def read_ser(timeout=5):
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if ser.in_waiting > 0:  
+            return ser.read(ser.in_waiting)  
+        time.sleep(0.01) 
+    return b""  
+
+def send_compCMDs(): 
+    structFormat = "50s50s"
+    rob1Cmd = b"for"  
+    rob2Cmd = b"rig"    
+    packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
+    ser.write(packed_data)
+
+def send_STO(): 
+    structFormat = "50s50s"
+    rob1Cmd = b"sto"  
+    rob2Cmd = b"sto"    
+    packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
+    ser.write(packed_data)
+
+try:
+    while 1:
+        send_compCMDs()
+        print(f"Sent Message Struct to Polulus")
+        string = read_ser(100)
+        if len(string):
+            print(string)
+        else:
+            print("No response received within timeout.")
+        time.sleep(5)  # Wait 1 second before sending the next message
+        send_STO()
+        print(f"Sent STOP to Polulus")
+        string = read_ser(100)
+        if len(string):
+            print(string)
+        else:
+            print("No response received within timeout.")
+
+except KeyboardInterrupt:
+    print("Exiting...")
+    ser.close()  # Ensure the serial port is closed
