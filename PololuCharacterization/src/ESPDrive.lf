@@ -45,41 +45,57 @@ reactor UARTrec {
         }
         uart_buf[index] = '\0';
         index = 0;
+        lf_set(mess, uart_buf);
+      } else {
+        lf_set(mess, "sty");
       }
-      lf_set(mess, uart_buf);
     =}
   }
 }
 
 reactor Robot {
-  input com: string
+  input cmd: string
   output notify: string
+  output debug: string
+
+  preamble {=
+    float lpower = 0.0f;
+    float rpower = 0.0f;
+    char lastMode;
+  =}
 
   motors = new Motors()
 
-  reaction(startup) -> notify {=
-    lf_set(notify, "START");
+  reaction(startup) -> notify, debug {=
+    lf_set(notify, "NOTIF INIT");
+    lf_set(debug, "DEBUG INIT");
   =}
 
   initial mode NEED_COMMAND {
-    reaction(com) -> notify, motors.left_power, motors.right_power {=
-      if (strcmp(com->value, "for") == 0) {
-        lf_set(notify, "DRIVE FOR");
-        lf_set(motors.left_power, 0.2f);
-        lf_set(motors.right_power, 0.2f);
-      } else if (strcmp(com->value, "rig") == 0) {
-        lf_set(notify, "DRIVE RIG");
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.2f);
-      } else if (strcmp(com->value, "lef") == 0) {
-        lf_set(notify, "DRIVE LEF");
-        lf_set(motors.left_power, 0.2f);
-        lf_set(motors.right_power, 0.0f);
+    reaction(cmd) -> notify, debug, motors.left_power, motors.right_power {=
+      static char buf[17];
+      static char deBuf[17];
+      if (strcmp(cmd->value, "sty") == 0) {
+        snprintf(buf, 17, "Staying in %c", lastMode);
+        snprintf(deBuf, 17, "cur l:%0.1f r:%0.1f", lpower, rpower);
       } else {
-        lf_set(notify, com->value);
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.0f);
+        if (strcmp(cmd->value, "for") == 0) {
+          lpower = 0.1f; rpower = 0.1f; lastMode = 'F';
+        } else if (strcmp(cmd->value, "rig") == 0) {
+          lpower = 0.0f; rpower = 0.1f; lastMode = 'R';
+        } else if (strcmp(cmd->value, "lef") == 0) {
+          lpower = 0.1f; rpower = 0.0f; lastMode = 'L';
+        } else if (strcmp(cmd->value, "sto") == 0) {
+          lpower = 0.0f; rpower = 0.0f; lastMode = 'S';
+        }
+        snprintf(buf, 17, cmd->value);
+        snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
       } 
+      lf_set(notify, buf);
+      lf_set(debug, deBuf);
+      lf_set(motors.left_power, lpower);
+      lf_set(motors.right_power, rpower);
+      
     =}
   }
 }
@@ -93,7 +109,8 @@ main reactor {
   rob = new Robot()
 
   rob.notify->d.line1
-  uart.mess->rob.com
+  rob.debug->d.line2
+  uart.mess->rob.cmd
 
   reaction(startup) {=
       stdio_init_all();
@@ -108,10 +125,11 @@ main reactor {
   reaction(t) -> uart.rec, d.line0 {=
     static char buf0[17];
     if (uart_is_readable(UART_ID)) {
-      snprintf(buf0, 17, "GOT MESS");
+      snprintf(buf0, 17, "Connected");
       lf_set(uart.rec, true);
     } else {
-      snprintf(buf0, 17, "NO MESS");
+      lf_set(uart.rec, false);
+      snprintf(buf0, 17, "No Connection");
     }
     lf_set(d.line0, buf0);
   =}   
