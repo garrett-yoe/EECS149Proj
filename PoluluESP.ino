@@ -15,18 +15,12 @@ HardwareSerial PolSerial(0);
 
 // Message template across ESPS
 typedef struct commands {
-  char rob1Cmd[20];
-  char rob2Cmd[20];
-  uint count;
+  char rob1Cmd[50];
+  char rob2Cmd[50];
 } commands;
-
-// FAKE COMPCMDS: to test middle man
-commands compCmds;
-// FAKE COMPCMDS: to test middle man
 
 // Cmds from middle man
 commands rcvCmds;
-uint count = 0; // Dummy value 
 
 // UART setup
 uint txPin = 1;
@@ -46,9 +40,17 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // ESP REC CALLBACK, forwards command from comp to Polulu's UART Channel
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
-  memcpy(&rcvCmds, incomingData, sizeof(rcvCmds));
-  PolSerial.println("IN POLULU SERIAL");
-  PolSerial.println(rcvCmds.rob1Cmd);
+  memcpy(&rcvCmds, incomingData, sizeof(commands));
+  // Print the deserialized data
+  Serial.print("Pol-ESP told R1: ");
+  Serial.println(rcvCmds.rob1Cmd);
+  char cmdBuf[5];
+  strcpy(cmdBuf, rcvCmds.rob1Cmd);
+  strcat(cmdBuf, "\r\n");
+  PolSerial.println(cmdBuf);
+  int leng = strlen(cmdBuf);
+  Serial.print("R1 CMD len: ");
+  Serial.println(leng);
 }
 
 esp_now_peer_info_t peerInfo;
@@ -76,20 +78,4 @@ void setup() {
 
 // don't really need for polulu
 void loop() {
-  // FAKE CMD MESS TO MIDDLE
-  strcpy(compCmds.rob1Cmd,"for");
-  strcpy(compCmds.rob2Cmd, "sto");
-  compCmds.count = count;
-  // FAKE CMD MESS TO MIDDLE
-
-  //SENDING PROTOCAL
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &compCmds, sizeof(compCmds)); 
-  if (result == ESP_OK) {
-    Serial.println("Message sent successfully");
-    count++;
-  } else {
-    Serial.println("Error sending message");
-  }
-  delay(4500);
-  //SENDING PROTOCAL
 }
