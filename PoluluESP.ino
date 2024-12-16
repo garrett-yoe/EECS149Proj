@@ -3,7 +3,9 @@
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_now.h>
+#include <ESP32Servo.h>
 #include <string.h>
+
 
 // THOMAS ESP-WROOM-32 MAC ADDRESS 
 uint8_t espMac[] = {0x40, 0x22, 0xD8, 0x5F, 0xA9, 0xF0};
@@ -12,6 +14,11 @@ uint8_t broadcastAddress[] = {0xE8, 0x9F, 0x6D, 0x2F, 0xB2, 0xC4};
 
 // Serial Channel for Polulu
 HardwareSerial PolSerial(0);
+// Servo ctrlr
+Servo clwServoL;
+Servo clwServoR;
+int servoPinL = 5;
+int servoPinR = 18;
 
 // Message template across ESPS
 typedef struct commands {
@@ -23,8 +30,8 @@ typedef struct commands {
 commands rcvCmds;
 
 // UART setup
-uint txPin = 1;
-uint rxPin = 3;
+int txPin = 1;
+int rxPin = 3;
 
 // FAKE COMPSND callback: to test middle man
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -38,19 +45,22 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 }
 // FAKE COMPSND callback: to test middle man
 
+bool claw = false;
 // ESP REC CALLBACK, forwards command from comp to Polulu's UART Channel
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   memcpy(&rcvCmds, incomingData, sizeof(commands));
-  // Print the deserialized data
-  Serial.print("Pol-ESP told R1: ");
-  Serial.println(rcvCmds.rob1Cmd);
-  char cmdBuf[5];
-  strcpy(cmdBuf, rcvCmds.rob1Cmd);
-  strcat(cmdBuf, "\r\n");
-  PolSerial.println(cmdBuf);
-  int leng = strlen(cmdBuf);
-  Serial.print("R1 CMD len: ");
-  Serial.println(leng);
+  if (strcmp(rcvCmds.rob1Cmd, "clw") == 0) {
+    if (!claw) {
+      clwServoL.write(90);
+      clwServoR.write(0);
+    } else {
+      clwServoL.write(0);
+      clwServoR.write(90);
+    }
+    claw = !claw;
+  } else {
+    PolSerial.println(rcvCmds.rob1Cmd);
+  }
 }
 
 esp_now_peer_info_t peerInfo;
@@ -59,6 +69,12 @@ void setup() {
   // Serial/UART Setup
   Serial.begin(115200); 
   PolSerial.begin(115200, SERIAL_8N1, 3, 1);
+
+  // Turn on LED for debug
+  clwServoL.attach(servoPinL);
+  clwServoL.write(0);
+  clwServoR.attach(servoPinR);
+  clwServoR.write(90);
 
   // Connecting to Middle Man
   WiFi.mode(WIFI_STA); 
