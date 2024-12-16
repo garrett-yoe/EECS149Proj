@@ -3,12 +3,12 @@ import time
 import struct
 
 # Specify the COM port and baud rate
-port = "COM9"
+port = "/dev/cu.wchusbserial564E0554801"
 baud_rate = 115200  # Make sure this matches the ESP settings
 
 # Open the serial port
 try:
-    ser = serial.Serial('COM9', baud_rate, timeout = 3)
+    ser = serial.Serial('/dev/cu.wchusbserial564E0554801', baud_rate, timeout = 3)
 except serial.SerialException as e:
     print(f"No connecting: {e}")
 
@@ -20,10 +20,24 @@ def read_ser(timeout=5):
         time.sleep(0.01) 
     return b""  
 
-def send_compCMDs(): 
+def send_FOR(): 
     structFormat = "50s50s"
     rob1Cmd = b"for"  
+    rob2Cmd = b"sto"    
+    packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
+    ser.write(packed_data)
+
+def send_LEF(): 
+    structFormat = "50s50s"
+    rob1Cmd = b"lef"  
     rob2Cmd = b"rig"    
+    packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
+    ser.write(packed_data)
+
+def send_RIG(): 
+    structFormat = "50s50s"
+    rob1Cmd = b"rig"  
+    rob2Cmd = b"lef"    
     packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
     ser.write(packed_data)
 
@@ -34,23 +48,27 @@ def send_STO():
     packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
     ser.write(packed_data)
 
+def send_CLW(): 
+    structFormat = "50s50s"
+    rob1Cmd = b"clw"  
+    rob2Cmd = b"sto"    
+    packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
+    ser.write(packed_data)
+
 try:
     while 1:
-        send_compCMDs()
-        print(f"Sent Message Struct to Polulus")
-        string = read_ser(100)
-        if len(string):
-            print(string)
-        else:
-            print("No response received within timeout.")
-        time.sleep(5)  # Wait 1 second before sending the next message
-        send_STO()
-        print(f"Sent STOP to Polulus")
-        string = read_ser(100)
-        if len(string):
-            print(string)
-        else:
-            print("No response received within timeout.")
+        # cmds = [send_FOR, send_LEF, send_CLW, send_RIG, send_STO, send_CLW]
+        # feedback = [f"Sent FOR to Polulus", f"Sent LEF to Polulus", f"Open CLW to Polulus", f"Sent RIG to Polulus", f"Sent STO to Polulus", f"Close CLW to Polulus"]
+        # for i in range(len(cmds)):
+        #     print(feedback[i])
+        #     cmds[i]()
+        #     string = read_ser()
+        #     if len(string):
+        #         print(string)
+        #     else:
+        #         print("No response received within timeout.")
+        send_CLW()
+        time.sleep(0.25)  # Wait 1 second before sending the next message
 
 except KeyboardInterrupt:
     print("Exiting...")
