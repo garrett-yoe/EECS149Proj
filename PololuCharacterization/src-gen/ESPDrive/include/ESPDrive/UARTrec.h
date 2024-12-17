@@ -1,8 +1,7 @@
 #ifndef _uartrec_H
 #define _uartrec_H
-#ifndef TOP_LEVEL_PREAMBLE_1099694603_H
-#define TOP_LEVEL_PREAMBLE_1099694603_H
-/*Correspondence: Range: [(19, 2), (19, 21)) -> Range: [(0, 0), (0, 19)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/lib/Motors.lf)*/#include <motors.h>
+#ifndef TOP_LEVEL_PREAMBLE_841011642_H
+#define TOP_LEVEL_PREAMBLE_841011642_H
 /*Correspondence: Range: [(13, 2), (22, 22)) -> Range: [(0, 0), (9, 22)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf)*/#include <stdio.h>
 #include <pico/stdlib.h>
 #include <hardware/gpio.h>
@@ -54,22 +53,4 @@ typedef struct {
     interval_t physical_time_of_arrival;
     #endif
 } uartrec_mess_t;
-typedef struct {
-    token_type_t type;
-    lf_token_t* token;
-    size_t length;
-    bool is_present;
-    lf_port_internal_t _base;
-    float value;
-
-} motors_left_power_t;
-typedef struct {
-    token_type_t type;
-    lf_token_t* token;
-    size_t length;
-    bool is_present;
-    lf_port_internal_t _base;
-    float value;
-
-} motors_right_power_t;
 #endif

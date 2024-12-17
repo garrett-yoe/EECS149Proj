@@ -252,7 +252,7 @@ LF_FILE_SEPARATOR:UNINITIALIZED="/"
 LF_PACKAGE_DIRECTORY:UNINITIALIZED="/home/foobar/EECS149Proj/PololuCharacterization"
 
 //No help, variable specified on the command line.
-LF_REACTION_GRAPH_BREADTH:UNINITIALIZED=4
+LF_REACTION_GRAPH_BREADTH:UNINITIALIZED=7
 
 //No help, variable specified on the command line.
 LF_SOURCE_DIRECTORY:UNINITIALIZED="/home/foobar/EECS149Proj/PololuCharacterization/src"

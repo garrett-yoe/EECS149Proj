@@ -17,6 +17,11 @@ int main(void) {
 }
 void _lf_set_default_command_line_options() {}
 #include "_motors.h"
+#include "_gyro.h"
+#include "_trapezoidalintegrator.h"
+#include "_gyroangle.h"
+#include "_encoders.h"
+#include "_angletodistance.h"
 #include "_robotlinefollower.h"
 #include "_irsensorreader.h"
 #include "_display.h"
@@ -29,7 +34,7 @@ typedef enum {
 environment_t envs[_num_enclaves];
 // 'Create' and initialize the environments in the program
 void _lf_create_environments() {
-    environment_init(&envs[simplelinefollow_main],simplelinefollow_main,_lf_number_of_workers,2,4,0,0,9,1,0,NULL);
+    environment_init(&envs[simplelinefollow_main],simplelinefollow_main,_lf_number_of_workers,4,6,0,0,22,1,0,NULL);
 }
 // Update the pointer argument to point to the beginning of the environment array
 // and return the size of that array
@@ -58,6 +63,20 @@ void _lf_initialize_trigger_objects() {
     SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_self);
     _motors_self_t* simplelinefollow_robot_motors_self[1];
     SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_motors_self);
+    _gyroangle_self_t* simplelinefollow_robot_gyro_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_gyro_self);
+    _gyro_self_t* simplelinefollow_robot_gyro_g_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_gyro_g_self);
+    _trapezoidalintegrator_self_t* simplelinefollow_robot_gyro_integrator1_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_gyro_integrator1_self);
+    _trapezoidalintegrator_self_t* simplelinefollow_robot_gyro_integrator2_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_gyro_integrator2_self);
+    _trapezoidalintegrator_self_t* simplelinefollow_robot_gyro_integrator3_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_gyro_integrator3_self);
+    _angletodistance_self_t* simplelinefollow_robot_a_to_d_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_a_to_d_self);
+    _encoders_self_t* simplelinefollow_robot_a_to_d_e_self[1];
+    SUPPRESS_UNUSED_WARNING(simplelinefollow_robot_a_to_d_e_self);
     _irsensorreader_self_t* simplelinefollow_irsensor_self[1];
     SUPPRESS_UNUSED_WARNING(simplelinefollow_irsensor_self);
     _display_self_t* simplelinefollow_display_self[1];
@@ -94,16 +113,40 @@ void _lf_initialize_trigger_objects() {
         // width of -2 indicates that it is not a multiport.
         simplelinefollow_robot_self[0]->_lf_drive_width = -2;
         // width of -2 indicates that it is not a multiport.
+        simplelinefollow_robot_self[0]->_lf_command_width = -2;
+        // width of -2 indicates that it is not a multiport.
         simplelinefollow_robot_self[0]->_lf_IR_1_val_width = -2;
         // width of -2 indicates that it is not a multiport.
         simplelinefollow_robot_self[0]->_lf_IR_LEFT_val_width = -2;
         // width of -2 indicates that it is not a multiport.
         simplelinefollow_robot_self[0]->_lf_IR_RIGHT_val_width = -2;
-        envs[simplelinefollow_main].startup_reactions[startup_reaction_count[simplelinefollow_main]++] = &simplelinefollow_robot_self[0]->_lf__reaction_0;
+        // width of -2 indicates that it is not a multiport.
+        simplelinefollow_robot_self[0]->_lf_external_turn_command_width = -2;
+        envs[simplelinefollow_main].startup_reactions[startup_reaction_count[simplelinefollow_main]++] = &simplelinefollow_robot_self[0]->_lf__reaction_1;
         SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
-    
+        // Initiaizing timer SimpleLineFollow.robot.t.
+        simplelinefollow_robot_self[0]->_lf__t.offset = 0;
+        simplelinefollow_robot_self[0]->_lf__t.period = MSEC(1);
+        // Associate timer with the environment of its parent
+        envs[simplelinefollow_main].timer_triggers[timer_triggers_count[simplelinefollow_main]++] = &simplelinefollow_robot_self[0]->_lf__t;
+        simplelinefollow_robot_self[0]->_lf__t.mode = NULL;
+        // Initializing action SimpleLineFollow.robot.action_wait
+        simplelinefollow_robot_self[0]->_lf__action_wait.offset = 0;
+        simplelinefollow_robot_self[0]->_lf__action_wait.period = -1;
+        simplelinefollow_robot_self[0]->_lf__action_wait.mode = NULL;
+        _lf_initialize_template((token_template_t*)
+                &(simplelinefollow_robot_self[0]->_lf__action_wait),
+        0);
+        simplelinefollow_robot_self[0]->_lf__action_wait.status = absent;
         simplelinefollow_robot_self[0]->_lf__reaction_0.deadline = NEVER;
         simplelinefollow_robot_self[0]->_lf__reaction_1.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_2.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_3.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_4.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_5.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_6.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_7.deadline = NEVER;
+        simplelinefollow_robot_self[0]->_lf__reaction_8.deadline = NEVER;
         // Register for transition handling
         envs[simplelinefollow_main].modes->modal_reactor_states[modal_reactor_count[simplelinefollow_main]++] = &((self_base_t*)simplelinefollow_robot_self[0])->_lf__mode_state;
         {
@@ -122,6 +165,161 @@ void _lf_initialize_trigger_objects() {
             simplelinefollow_robot_motors_self[0]->_lf__reaction_1.deadline = NEVER;
             simplelinefollow_robot_motors_self[0]->_lf__reaction_2.deadline = NEVER;
             //***** End initializing SimpleLineFollow.robot.motors
+        }
+        {
+            // ***** Start initializing SimpleLineFollow.robot.gyro of class GyroAngle
+            simplelinefollow_robot_gyro_self[0] = new__gyroangle();
+            simplelinefollow_robot_gyro_self[0]->base.environment = &envs[simplelinefollow_main];
+            bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+            // width of -2 indicates that it is not a multiport.
+            simplelinefollow_robot_gyro_self[0]->_lf_x_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            simplelinefollow_robot_gyro_self[0]->_lf_y_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            simplelinefollow_robot_gyro_self[0]->_lf_z_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            simplelinefollow_robot_gyro_self[0]->_lf_trigger_width = -2;
+            SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+            {
+                // ***** Start initializing SimpleLineFollow.robot.gyro.g of class Gyro
+                simplelinefollow_robot_gyro_g_self[0] = new__gyro();
+                simplelinefollow_robot_gyro_g_self[0]->base.environment = &envs[simplelinefollow_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_g_self[0]->_lf_x_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_g_self[0]->_lf_y_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_g_self[0]->_lf_z_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_g_self[0]->_lf_trigger_width = -2;
+                envs[simplelinefollow_main].startup_reactions[startup_reaction_count[simplelinefollow_main]++] = &simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_0;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+                simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_0.deadline = NEVER;
+                simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.deadline = NEVER;
+                //***** End initializing SimpleLineFollow.robot.gyro.g
+            }
+            {
+                // ***** Start initializing SimpleLineFollow.robot.gyro.integrator1 of class TrapezoidalIntegrator
+                simplelinefollow_robot_gyro_integrator1_self[0] = new__trapezoidalintegrator();
+                simplelinefollow_robot_gyro_integrator1_self[0]->base.environment = &envs[simplelinefollow_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_integrator1_self[0]->_lf_out_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_integrator1_self[0]->_lf_in_width = -2;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                { // For scoping
+                    static float _initial = 0;
+                    simplelinefollow_robot_gyro_integrator1_self[0]->s = _initial;
+                } // End scoping.
+                { // For scoping
+                    static float _initial = 0;
+                    simplelinefollow_robot_gyro_integrator1_self[0]->prev_in = _initial;
+                } // End scoping.
+                { // For scoping
+                    static instant_t _initial = 0;
+                    simplelinefollow_robot_gyro_integrator1_self[0]->prev_time = _initial;
+                } // End scoping.
+    
+                simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.deadline = NEVER;
+                //***** End initializing SimpleLineFollow.robot.gyro.integrator1
+            }
+            {
+                // ***** Start initializing SimpleLineFollow.robot.gyro.integrator2 of class TrapezoidalIntegrator
+                simplelinefollow_robot_gyro_integrator2_self[0] = new__trapezoidalintegrator();
+                simplelinefollow_robot_gyro_integrator2_self[0]->base.environment = &envs[simplelinefollow_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_integrator2_self[0]->_lf_out_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_integrator2_self[0]->_lf_in_width = -2;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                { // For scoping
+                    static float _initial = 0;
+                    simplelinefollow_robot_gyro_integrator2_self[0]->s = _initial;
+                } // End scoping.
+                { // For scoping
+                    static float _initial = 0;
+                    simplelinefollow_robot_gyro_integrator2_self[0]->prev_in = _initial;
+                } // End scoping.
+                { // For scoping
+                    static instant_t _initial = 0;
+                    simplelinefollow_robot_gyro_integrator2_self[0]->prev_time = _initial;
+                } // End scoping.
+    
+                simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.deadline = NEVER;
+                //***** End initializing SimpleLineFollow.robot.gyro.integrator2
+            }
+            {
+                // ***** Start initializing SimpleLineFollow.robot.gyro.integrator3 of class TrapezoidalIntegrator
+                simplelinefollow_robot_gyro_integrator3_self[0] = new__trapezoidalintegrator();
+                simplelinefollow_robot_gyro_integrator3_self[0]->base.environment = &envs[simplelinefollow_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_integrator3_self[0]->_lf_out_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_gyro_integrator3_self[0]->_lf_in_width = -2;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                { // For scoping
+                    static float _initial = 0;
+                    simplelinefollow_robot_gyro_integrator3_self[0]->s = _initial;
+                } // End scoping.
+                { // For scoping
+                    static float _initial = 0;
+                    simplelinefollow_robot_gyro_integrator3_self[0]->prev_in = _initial;
+                } // End scoping.
+                { // For scoping
+                    static instant_t _initial = 0;
+                    simplelinefollow_robot_gyro_integrator3_self[0]->prev_time = _initial;
+                } // End scoping.
+    
+                simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.deadline = NEVER;
+                //***** End initializing SimpleLineFollow.robot.gyro.integrator3
+            }
+            //***** End initializing SimpleLineFollow.robot.gyro
+        }
+        {
+            // ***** Start initializing SimpleLineFollow.robot.a_to_d of class AngleToDistance
+            simplelinefollow_robot_a_to_d_self[0] = new__angletodistance();
+            simplelinefollow_robot_a_to_d_self[0]->base.environment = &envs[simplelinefollow_main];
+            bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+            // width of -2 indicates that it is not a multiport.
+            simplelinefollow_robot_a_to_d_self[0]->_lf_left_distance_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            simplelinefollow_robot_a_to_d_self[0]->_lf_right_distance_width = -2;
+            SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+            // Initiaizing timer SimpleLineFollow.robot.a_to_d.t.
+            simplelinefollow_robot_a_to_d_self[0]->_lf__t.offset = 0;
+            simplelinefollow_robot_a_to_d_self[0]->_lf__t.period = MSEC(10);
+            // Associate timer with the environment of its parent
+            envs[simplelinefollow_main].timer_triggers[timer_triggers_count[simplelinefollow_main]++] = &simplelinefollow_robot_a_to_d_self[0]->_lf__t;
+            simplelinefollow_robot_a_to_d_self[0]->_lf__t.mode = NULL;
+    
+            simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.deadline = NEVER;
+            simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.deadline = NEVER;
+            simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.deadline = NEVER;
+            {
+                // ***** Start initializing SimpleLineFollow.robot.a_to_d.e of class Encoders
+                simplelinefollow_robot_a_to_d_e_self[0] = new__encoders();
+                simplelinefollow_robot_a_to_d_e_self[0]->base.environment = &envs[simplelinefollow_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_a_to_d_e_self[0]->_lf_right_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_a_to_d_e_self[0]->_lf_left_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                simplelinefollow_robot_a_to_d_e_self[0]->_lf_trigger_width = -2;
+                envs[simplelinefollow_main].startup_reactions[startup_reaction_count[simplelinefollow_main]++] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_0;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+                simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_0.deadline = NEVER;
+                simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.deadline = NEVER;
+                //***** End initializing SimpleLineFollow.robot.a_to_d.e
+            }
+            //***** End initializing SimpleLineFollow.robot.a_to_d
         }
         //***** End initializing SimpleLineFollow.robot
     }
@@ -198,51 +396,234 @@ void _lf_initialize_trigger_objects() {
                     &simplelinefollow_robot_self[0]->base.allocations);
             {
                 int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                // Reaction writes to an input of a contained reactor.
                 {
-                    simplelinefollow_robot_self[0]->_lf__reaction_0.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                    simplelinefollow_robot_self[0]->_lf__reaction_0.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_gyro.trigger.is_present;
                 }
             }
             
             // ** End initialization for reaction 0 of SimpleLineFollow.robot
             // Total number of outputs (single ports and multiport channels)
             // produced by reaction_1 of SimpleLineFollow.robot.
-            simplelinefollow_robot_self[0]->_lf__reaction_1.num_outputs = 6;
+            simplelinefollow_robot_self[0]->_lf__reaction_1.num_outputs = 1;
             // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
             // struct for this reaction.
             simplelinefollow_robot_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
-                    6, sizeof(trigger_t**),
+                    1, sizeof(trigger_t**),
                     &simplelinefollow_robot_self[0]->base.allocations);
             simplelinefollow_robot_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
-                    6, sizeof(int),
+                    1, sizeof(int),
                     &simplelinefollow_robot_self[0]->base.allocations);
             simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
-                    6, sizeof(bool*),
+                    1, sizeof(bool*),
                     &simplelinefollow_robot_self[0]->base.allocations);
             {
                 int count = 0; SUPPRESS_UNUSED_WARNING(count);
                 {
                     simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
                 }
-                {
-                    simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
-                }
-                {
-                    simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify3.is_present;
-                }
-                {
-                    simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify4.is_present;
-                }
-                // Reaction writes to an input of a contained reactor.
-                {
-                    simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
-                }
-                // Reaction writes to an input of a contained reactor.
-                {
-                    simplelinefollow_robot_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
-                }
             }
             
             // ** End initialization for reaction 1 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_2 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_2.num_outputs = 6;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            simplelinefollow_robot_self[0]->_lf__reaction_2.triggers = (trigger_t***)_lf_allocate(
+                    6, sizeof(trigger_t**),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_2.triggered_sizes = (int*)_lf_allocate(
+                    6, sizeof(int),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced = (bool**)_lf_allocate(
+                    6, sizeof(bool*),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify3.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify4.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 2 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_3 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_3.num_outputs = 5;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            simplelinefollow_robot_self[0]->_lf__reaction_3.triggers = (trigger_t***)_lf_allocate(
+                    5, sizeof(trigger_t**),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_3.triggered_sizes = (int*)_lf_allocate(
+                    5, sizeof(int),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_3.output_produced = (bool**)_lf_allocate(
+                    5, sizeof(bool*),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_3.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_3.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_3.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify4.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_3.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_3.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 3 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_4 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_4.num_outputs = 4;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            simplelinefollow_robot_self[0]->_lf__reaction_4.triggers = (trigger_t***)_lf_allocate(
+                    4, sizeof(trigger_t**),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_4.triggered_sizes = (int*)_lf_allocate(
+                    4, sizeof(int),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_4.output_produced = (bool**)_lf_allocate(
+                    4, sizeof(bool*),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_4.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_4.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_4.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_4.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 4 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_5 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_5.num_outputs = 2;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            simplelinefollow_robot_self[0]->_lf__reaction_5.triggers = (trigger_t***)_lf_allocate(
+                    2, sizeof(trigger_t**),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_5.triggered_sizes = (int*)_lf_allocate(
+                    2, sizeof(int),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_5.output_produced = (bool**)_lf_allocate(
+                    2, sizeof(bool*),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_5.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_5.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 5 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_6 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_6.num_outputs = 2;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            simplelinefollow_robot_self[0]->_lf__reaction_6.triggers = (trigger_t***)_lf_allocate(
+                    2, sizeof(trigger_t**),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_6.triggered_sizes = (int*)_lf_allocate(
+                    2, sizeof(int),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_6.output_produced = (bool**)_lf_allocate(
+                    2, sizeof(bool*),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_6.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_6.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 6 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_7 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_7.num_outputs = 0;
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            }
+            
+            // ** End initialization for reaction 7 of SimpleLineFollow.robot
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_8 of SimpleLineFollow.robot.
+            simplelinefollow_robot_self[0]->_lf__reaction_8.num_outputs = 4;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            simplelinefollow_robot_self[0]->_lf__reaction_8.triggers = (trigger_t***)_lf_allocate(
+                    4, sizeof(trigger_t**),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_8.triggered_sizes = (int*)_lf_allocate(
+                    4, sizeof(int),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            simplelinefollow_robot_self[0]->_lf__reaction_8.output_produced = (bool**)_lf_allocate(
+                    4, sizeof(bool*),
+                    &simplelinefollow_robot_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_8.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+                }
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_8.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_8.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    simplelinefollow_robot_self[0]->_lf__reaction_8.output_produced[count++] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 8 of SimpleLineFollow.robot
         
             // **** Start deferred initialize for SimpleLineFollow.robot.motors
             {
@@ -274,6 +655,251 @@ void _lf_initialize_trigger_objects() {
             
             }
             // **** End of deferred initialize for SimpleLineFollow.robot.motors
+            // **** Start deferred initialize for SimpleLineFollow.robot.gyro
+            {
+            
+            
+            
+                // **** Start deferred initialize for SimpleLineFollow.robot.gyro.g
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of SimpleLineFollow.robot.gyro.g.
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_0.num_outputs = 0;
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    }
+                    
+                    // ** End initialization for reaction 0 of SimpleLineFollow.robot.gyro.g
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_1 of SimpleLineFollow.robot.gyro.g.
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.num_outputs = 3;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                            3, sizeof(trigger_t**),
+                            &simplelinefollow_robot_gyro_g_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                            3, sizeof(int),
+                            &simplelinefollow_robot_gyro_g_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                            3, sizeof(bool*),
+                            &simplelinefollow_robot_gyro_g_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_gyro_g_self[0]->_lf_x.is_present;
+                        }
+                        {
+                            simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_gyro_g_self[0]->_lf_y.is_present;
+                        }
+                        {
+                            simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_gyro_g_self[0]->_lf_z.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 1 of SimpleLineFollow.robot.gyro.g
+                
+                }
+                // **** End of deferred initialize for SimpleLineFollow.robot.gyro.g
+                // **** Start deferred initialize for SimpleLineFollow.robot.gyro.integrator1
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of SimpleLineFollow.robot.gyro.integrator1.
+                    simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.num_outputs = 1;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                            1, sizeof(trigger_t**),
+                            &simplelinefollow_robot_gyro_integrator1_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                            1, sizeof(int),
+                            &simplelinefollow_robot_gyro_integrator1_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                            1, sizeof(bool*),
+                            &simplelinefollow_robot_gyro_integrator1_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.output_produced[count++] = &simplelinefollow_robot_gyro_integrator1_self[0]->_lf_out.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 0 of SimpleLineFollow.robot.gyro.integrator1
+                
+                }
+                // **** End of deferred initialize for SimpleLineFollow.robot.gyro.integrator1
+                // **** Start deferred initialize for SimpleLineFollow.robot.gyro.integrator2
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of SimpleLineFollow.robot.gyro.integrator2.
+                    simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.num_outputs = 1;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                            1, sizeof(trigger_t**),
+                            &simplelinefollow_robot_gyro_integrator2_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                            1, sizeof(int),
+                            &simplelinefollow_robot_gyro_integrator2_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                            1, sizeof(bool*),
+                            &simplelinefollow_robot_gyro_integrator2_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.output_produced[count++] = &simplelinefollow_robot_gyro_integrator2_self[0]->_lf_out.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 0 of SimpleLineFollow.robot.gyro.integrator2
+                
+                }
+                // **** End of deferred initialize for SimpleLineFollow.robot.gyro.integrator2
+                // **** Start deferred initialize for SimpleLineFollow.robot.gyro.integrator3
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of SimpleLineFollow.robot.gyro.integrator3.
+                    simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.num_outputs = 1;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                            1, sizeof(trigger_t**),
+                            &simplelinefollow_robot_gyro_integrator3_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                            1, sizeof(int),
+                            &simplelinefollow_robot_gyro_integrator3_self[0]->base.allocations);
+                    simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                            1, sizeof(bool*),
+                            &simplelinefollow_robot_gyro_integrator3_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.output_produced[count++] = &simplelinefollow_robot_gyro_integrator3_self[0]->_lf_out.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 0 of SimpleLineFollow.robot.gyro.integrator3
+                
+                }
+                // **** End of deferred initialize for SimpleLineFollow.robot.gyro.integrator3
+            }
+            // **** End of deferred initialize for SimpleLineFollow.robot.gyro
+            // **** Start deferred initialize for SimpleLineFollow.robot.a_to_d
+            {
+            
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_0 of SimpleLineFollow.robot.a_to_d.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.num_outputs = 1;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                        1, sizeof(trigger_t**),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                        1, sizeof(int),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                        1, sizeof(bool*),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.output_produced[count++] = &simplelinefollow_robot_a_to_d_self[0]->_lf_e.trigger.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 0 of SimpleLineFollow.robot.a_to_d
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_1 of SimpleLineFollow.robot.a_to_d.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.num_outputs = 1;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                        1, sizeof(trigger_t**),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                        1, sizeof(int),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                        1, sizeof(bool*),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_a_to_d_self[0]->_lf_left_distance.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 1 of SimpleLineFollow.robot.a_to_d
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_2 of SimpleLineFollow.robot.a_to_d.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.num_outputs = 1;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.triggers = (trigger_t***)_lf_allocate(
+                        1, sizeof(trigger_t**),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.triggered_sizes = (int*)_lf_allocate(
+                        1, sizeof(int),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.output_produced = (bool**)_lf_allocate(
+                        1, sizeof(bool*),
+                        &simplelinefollow_robot_a_to_d_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.output_produced[count++] = &simplelinefollow_robot_a_to_d_self[0]->_lf_right_distance.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 2 of SimpleLineFollow.robot.a_to_d
+            
+                // **** Start deferred initialize for SimpleLineFollow.robot.a_to_d.e
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of SimpleLineFollow.robot.a_to_d.e.
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_0.num_outputs = 0;
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    }
+                    
+                    // ** End initialization for reaction 0 of SimpleLineFollow.robot.a_to_d.e
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_1 of SimpleLineFollow.robot.a_to_d.e.
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.num_outputs = 2;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                            2, sizeof(trigger_t**),
+                            &simplelinefollow_robot_a_to_d_e_self[0]->base.allocations);
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                            2, sizeof(int),
+                            &simplelinefollow_robot_a_to_d_e_self[0]->base.allocations);
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                            2, sizeof(bool*),
+                            &simplelinefollow_robot_a_to_d_e_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf_left.is_present;
+                        }
+                        {
+                            simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.output_produced[count++] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf_right.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 1 of SimpleLineFollow.robot.a_to_d.e
+                
+                }
+                // **** End of deferred initialize for SimpleLineFollow.robot.a_to_d.e
+            }
+            // **** End of deferred initialize for SimpleLineFollow.robot.a_to_d
         }
         // **** End of deferred initialize for SimpleLineFollow.robot
         // **** Start deferred initialize for SimpleLineFollow.IRSensor
@@ -385,6 +1011,16 @@ void _lf_initialize_trigger_objects() {
     
     
     // **** Start non-nested deferred initialize for SimpleLineFollow.robot
+    // Set number of destination reactors for port gyro.trigger.
+    // Iterate over range SimpleLineFollow.robot.gyro.trigger(0,1)->[SimpleLineFollow.robot.gyro.g.trigger(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_self[src_runtime]->_lf_gyro.trigger._base.num_destinations = 1;
+        simplelinefollow_robot_self[src_runtime]->_lf_gyro.trigger._base.source_reactor = (self_base_t*)simplelinefollow_robot_self[src_runtime];
+    }
     // Set number of destination reactors for port motors.left_power.
     // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)].
     {
@@ -447,24 +1083,24 @@ void _lf_initialize_trigger_objects() {
     }
     {
         int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
-        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        // Iterate over range SimpleLineFollow.robot.gyro.trigger(0,1)->[SimpleLineFollow.robot.gyro.g.trigger(0,1)].
         {
             int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
             int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
             int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
             // Reaction 0 of SimpleLineFollow.robot triggers 1 downstream reactions
-            // through port SimpleLineFollow.robot.notify1.
+            // through port SimpleLineFollow.robot.gyro.trigger.
             simplelinefollow_robot_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
             // For reaction 0 of SimpleLineFollow.robot, allocate an
-            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.gyro.trigger
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
                     &simplelinefollow_robot_self[src_runtime]->base.allocations); 
             simplelinefollow_robot_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 0;
-        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        // Iterate over ranges SimpleLineFollow.robot.gyro.trigger(0,1)->[SimpleLineFollow.robot.gyro.g.trigger(0,1)] and SimpleLineFollow.robot.gyro.g.trigger(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -472,14 +1108,14 @@ void _lf_initialize_trigger_objects() {
             SUPPRESS_UNUSED_WARNING(src_channel);
             int src_bank = 0; // Bank index.
             SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            // Iterate over range SimpleLineFollow.robot.gyro.g.trigger(0,1).
             {
                 int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
                 int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
-                simplelinefollow_robot_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+                // Point to destination port SimpleLineFollow.robot.gyro.g.trigger's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_gyro_g_self[dst_runtime]->_lf__trigger;
             }
         }
     }
@@ -496,86 +1132,6 @@ void _lf_initialize_trigger_objects() {
             simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
             // For reaction 1 of SimpleLineFollow.robot, allocate an
             // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of SimpleLineFollow.robot triggers 1 downstream reactions
-            // through port SimpleLineFollow.robot.notify2.
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of SimpleLineFollow.robot, allocate an
-            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range SimpleLineFollow.robot.notify3(0,1)->[SimpleLineFollow.display.line2(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of SimpleLineFollow.robot triggers 1 downstream reactions
-            // through port SimpleLineFollow.robot.notify3.
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of SimpleLineFollow.robot, allocate an
-            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify3
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range SimpleLineFollow.robot.notify4(0,1)->[SimpleLineFollow.display.line3(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of SimpleLineFollow.robot triggers 1 downstream reactions
-            // through port SimpleLineFollow.robot.notify4.
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of SimpleLineFollow.robot, allocate an
-            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify4
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of SimpleLineFollow.robot triggers 1 downstream reactions
-            // through port SimpleLineFollow.robot.motors.left_power.
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of SimpleLineFollow.robot, allocate an
-            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.left_power
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of SimpleLineFollow.robot triggers 1 downstream reactions
-            // through port SimpleLineFollow.robot.motors.right_power.
-            simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of SimpleLineFollow.robot, allocate an
-            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.right_power
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
                     &simplelinefollow_robot_self[src_runtime]->base.allocations); 
@@ -600,6 +1156,124 @@ void _lf_initialize_trigger_objects() {
                 simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
             }
         }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify1.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify2.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify3(0,1)->[SimpleLineFollow.display.line2(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify3.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify3
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify4(0,1)->[SimpleLineFollow.display.line3(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify4.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify4
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.left_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.right_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+            }
+        }
         for (int i = 0; i < 1; i++) triggers_index[i] = 1;
         // Iterate over ranges SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)] and SimpleLineFollow.display.line1(0,1).
         {
@@ -616,7 +1290,7 @@ void _lf_initialize_trigger_objects() {
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
                 // Point to destination port SimpleLineFollow.display.line1's trigger struct.
-                simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 2;
@@ -635,7 +1309,7 @@ void _lf_initialize_trigger_objects() {
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
                 // Point to destination port SimpleLineFollow.display.line2's trigger struct.
-                simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line2;
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line2;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 3;
@@ -654,7 +1328,7 @@ void _lf_initialize_trigger_objects() {
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
                 // Point to destination port SimpleLineFollow.display.line3's trigger struct.
-                simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line3;
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line3;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 4;
@@ -673,7 +1347,7 @@ void _lf_initialize_trigger_objects() {
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
                 // Point to destination port SimpleLineFollow.robot.motors.left_power's trigger struct.
-                simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__left_power;
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__left_power;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 5;
@@ -692,7 +1366,617 @@ void _lf_initialize_trigger_objects() {
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
                 // Point to destination port SimpleLineFollow.robot.motors.right_power's trigger struct.
-                simplelinefollow_robot_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__right_power;
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify1.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify2.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify4(0,1)->[SimpleLineFollow.display.line3(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify4.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify4
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.left_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.right_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)] and SimpleLineFollow.display.line1(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line1(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line1's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 2;
+        // Iterate over ranges SimpleLineFollow.robot.notify4(0,1)->[SimpleLineFollow.display.line3(0,1)] and SimpleLineFollow.display.line3(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line3(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line3's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line3;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 3;
+        // Iterate over ranges SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)] and SimpleLineFollow.robot.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.motors.left_power's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 4;
+        // Iterate over ranges SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)] and SimpleLineFollow.robot.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.motors.right_power's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 4 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify1.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 4 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 4 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify2.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 4 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 4 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.left_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 4 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 4 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.right_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 4 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)] and SimpleLineFollow.display.line1(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line1(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line1's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 2;
+        // Iterate over ranges SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)] and SimpleLineFollow.robot.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.motors.left_power's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 3;
+        // Iterate over ranges SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)] and SimpleLineFollow.robot.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.motors.right_power's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 5 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify1.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_5.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 5 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_5.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 5 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify2.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_5.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 5 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_5.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_5.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)] and SimpleLineFollow.display.line1(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line1(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line1's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_5.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 6 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify1.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_6.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 6 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 6 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify2.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_6.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 6 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)] and SimpleLineFollow.display.line1(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line1(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line1's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 8 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify1.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 8 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify1
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 8 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.notify2.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 8 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.notify2
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 8 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.left_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 8 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 8 of SimpleLineFollow.robot triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.motors.right_power.
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 8 of SimpleLineFollow.robot, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.notify1(0,1)->[SimpleLineFollow.display.line0(0,1)] and SimpleLineFollow.display.line0(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line0(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line0's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line0;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.notify2(0,1)->[SimpleLineFollow.display.line1(0,1)] and SimpleLineFollow.display.line1(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.display.line1(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.display.line1's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_display_self[dst_runtime]->_lf__line1;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 2;
+        // Iterate over ranges SimpleLineFollow.robot.motors.left_power(0,1)->[SimpleLineFollow.robot.motors.left_power(0,1)] and SimpleLineFollow.robot.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.motors.left_power's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 3;
+        // Iterate over ranges SimpleLineFollow.robot.motors.right_power(0,1)->[SimpleLineFollow.robot.motors.right_power(0,1)] and SimpleLineFollow.robot.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.motors.right_power's trigger struct.
+                simplelinefollow_robot_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_motors_self[dst_runtime]->_lf__right_power;
             }
         }
     }
@@ -703,6 +1987,437 @@ void _lf_initialize_trigger_objects() {
     
     
     // **** End of non-nested deferred initialize for SimpleLineFollow.robot.motors
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.gyro
+    
+    simplelinefollow_robot_gyro_self[0]->_lf_x._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_self[0];
+    simplelinefollow_robot_gyro_self[0]->_lf_y._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_self[0];
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.gyro.z.
+    // Iterate over range SimpleLineFollow.robot.gyro.z(0,1)->[SimpleLineFollow.robot.gyro.z(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_gyro_self[src_runtime]->_lf_z._base.num_destinations = 1;
+        simplelinefollow_robot_gyro_self[src_runtime]->_lf_z._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_self[src_runtime];
+    }
+    
+    
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.gyro.g
+    
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.gyro.g.x.
+    // Iterate over range SimpleLineFollow.robot.gyro.g.x(0,1)->[SimpleLineFollow.robot.gyro.integrator1.in(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_x._base.num_destinations = 1;
+        simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_x._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_g_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.gyro.g.y.
+    // Iterate over range SimpleLineFollow.robot.gyro.g.y(0,1)->[SimpleLineFollow.robot.gyro.integrator2.in(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_y._base.num_destinations = 1;
+        simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_y._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_g_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.gyro.g.z.
+    // Iterate over range SimpleLineFollow.robot.gyro.g.z(0,1)->[SimpleLineFollow.robot.gyro.integrator3.in(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_z._base.num_destinations = 1;
+        simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_z._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_g_self[src_runtime];
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.gyro.g.x(0,1)->[SimpleLineFollow.robot.gyro.integrator1.in(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of SimpleLineFollow.robot.gyro.g triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.gyro.g.x.
+            simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of SimpleLineFollow.robot.gyro.g, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.gyro.g.x
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_gyro_g_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.gyro.g.y(0,1)->[SimpleLineFollow.robot.gyro.integrator2.in(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of SimpleLineFollow.robot.gyro.g triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.gyro.g.y.
+            simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of SimpleLineFollow.robot.gyro.g, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.gyro.g.y
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_gyro_g_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.gyro.g.z(0,1)->[SimpleLineFollow.robot.gyro.integrator3.in(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of SimpleLineFollow.robot.gyro.g triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.gyro.g.z.
+            simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of SimpleLineFollow.robot.gyro.g, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.gyro.g.z
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_gyro_g_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.gyro.g.x(0,1)->[SimpleLineFollow.robot.gyro.integrator1.in(0,1)] and SimpleLineFollow.robot.gyro.integrator1.in(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.gyro.integrator1.in(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.gyro.integrator1.in's trigger struct.
+                simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_gyro_integrator1_self[dst_runtime]->_lf__in;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.gyro.g.y(0,1)->[SimpleLineFollow.robot.gyro.integrator2.in(0,1)] and SimpleLineFollow.robot.gyro.integrator2.in(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.gyro.integrator2.in(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.gyro.integrator2.in's trigger struct.
+                simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_gyro_integrator2_self[dst_runtime]->_lf__in;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 2;
+        // Iterate over ranges SimpleLineFollow.robot.gyro.g.z(0,1)->[SimpleLineFollow.robot.gyro.integrator3.in(0,1)] and SimpleLineFollow.robot.gyro.integrator3.in(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.gyro.integrator3.in(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.gyro.integrator3.in's trigger struct.
+                simplelinefollow_robot_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_gyro_integrator3_self[dst_runtime]->_lf__in;
+            }
+        }
+    }
+    
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.gyro.g
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.gyro.integrator1
+    
+    simplelinefollow_robot_gyro_integrator1_self[0]->_lf_out._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_integrator1_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.gyro.integrator1
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.gyro.integrator2
+    
+    simplelinefollow_robot_gyro_integrator2_self[0]->_lf_out._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_integrator2_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.gyro.integrator2
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.gyro.integrator3
+    
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.gyro.integrator3.out.
+    // Iterate over range SimpleLineFollow.robot.gyro.integrator3.out(0,1)->[SimpleLineFollow.robot.gyro.z(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_gyro_integrator3_self[src_runtime]->_lf_out._base.num_destinations = 1;
+        simplelinefollow_robot_gyro_integrator3_self[src_runtime]->_lf_out._base.source_reactor = (self_base_t*)simplelinefollow_robot_gyro_integrator3_self[src_runtime];
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.gyro.integrator3.out(0,1)->[SimpleLineFollow.robot.gyro.z(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of SimpleLineFollow.robot.gyro.integrator3 triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.gyro.integrator3.out.
+            simplelinefollow_robot_gyro_integrator3_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of SimpleLineFollow.robot.gyro.integrator3, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.gyro.integrator3.out
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_gyro_integrator3_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_gyro_integrator3_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.gyro.integrator3.out(0,1)->[SimpleLineFollow.robot.gyro.z(0,1)] and SimpleLineFollow.robot.gyro.z(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.gyro.z(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Port SimpleLineFollow.robot.gyro.integrator3.out has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                simplelinefollow_robot_gyro_integrator3_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_self[dst_runtime]->_lf_gyro.z_trigger;
+            }
+        }
+    }
+    
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.gyro.integrator3
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.gyro
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.a_to_d
+    // Set number of destination reactors for port e.trigger.
+    // Iterate over range SimpleLineFollow.robot.a_to_d.e.trigger(0,1)->[SimpleLineFollow.robot.a_to_d.e.trigger(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_a_to_d_self[src_runtime]->_lf_e.trigger._base.num_destinations = 1;
+        simplelinefollow_robot_a_to_d_self[src_runtime]->_lf_e.trigger._base.source_reactor = (self_base_t*)simplelinefollow_robot_a_to_d_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.a_to_d.left_distance.
+    // Iterate over range SimpleLineFollow.robot.a_to_d.left_distance(0,1)->[SimpleLineFollow.robot.a_to_d.left_distance(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_a_to_d_self[src_runtime]->_lf_left_distance._base.num_destinations = 1;
+        simplelinefollow_robot_a_to_d_self[src_runtime]->_lf_left_distance._base.source_reactor = (self_base_t*)simplelinefollow_robot_a_to_d_self[src_runtime];
+    }
+    simplelinefollow_robot_a_to_d_self[0]->_lf_right_distance._base.source_reactor = (self_base_t*)simplelinefollow_robot_a_to_d_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.a_to_d.e.trigger(0,1)->[SimpleLineFollow.robot.a_to_d.e.trigger(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of SimpleLineFollow.robot.a_to_d triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.a_to_d.e.trigger.
+            simplelinefollow_robot_a_to_d_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of SimpleLineFollow.robot.a_to_d, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.a_to_d.e.trigger
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_a_to_d_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_a_to_d_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.a_to_d.e.trigger(0,1)->[SimpleLineFollow.robot.a_to_d.e.trigger(0,1)] and SimpleLineFollow.robot.a_to_d.e.trigger(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.a_to_d.e.trigger(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port SimpleLineFollow.robot.a_to_d.e.trigger's trigger struct.
+                simplelinefollow_robot_a_to_d_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_a_to_d_e_self[dst_runtime]->_lf__trigger;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.a_to_d.left_distance(0,1)->[SimpleLineFollow.robot.a_to_d.left_distance(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of SimpleLineFollow.robot.a_to_d triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.a_to_d.left_distance.
+            simplelinefollow_robot_a_to_d_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of SimpleLineFollow.robot.a_to_d, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.a_to_d.left_distance
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_a_to_d_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_a_to_d_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.a_to_d.left_distance(0,1)->[SimpleLineFollow.robot.a_to_d.left_distance(0,1)] and SimpleLineFollow.robot.a_to_d.left_distance(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.a_to_d.left_distance(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Port SimpleLineFollow.robot.a_to_d.left_distance has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                simplelinefollow_robot_a_to_d_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_self[dst_runtime]->_lf_a_to_d.left_distance_trigger;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    
+    // **** Start non-nested deferred initialize for SimpleLineFollow.robot.a_to_d.e
+    
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.a_to_d.e.right.
+    // Iterate over range SimpleLineFollow.robot.a_to_d.e.right(0,1)->[SimpleLineFollow.robot.a_to_d.e.right(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf_right._base.num_destinations = 1;
+        simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf_right._base.source_reactor = (self_base_t*)simplelinefollow_robot_a_to_d_e_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port SimpleLineFollow.robot.a_to_d.e.left.
+    // Iterate over range SimpleLineFollow.robot.a_to_d.e.left(0,1)->[SimpleLineFollow.robot.a_to_d.e.left(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf_left._base.num_destinations = 1;
+        simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf_left._base.source_reactor = (self_base_t*)simplelinefollow_robot_a_to_d_e_self[src_runtime];
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range SimpleLineFollow.robot.a_to_d.e.left(0,1)->[SimpleLineFollow.robot.a_to_d.e.left(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of SimpleLineFollow.robot.a_to_d.e triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.a_to_d.e.left.
+            simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of SimpleLineFollow.robot.a_to_d.e, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.a_to_d.e.left
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_a_to_d_e_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range SimpleLineFollow.robot.a_to_d.e.right(0,1)->[SimpleLineFollow.robot.a_to_d.e.right(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of SimpleLineFollow.robot.a_to_d.e triggers 1 downstream reactions
+            // through port SimpleLineFollow.robot.a_to_d.e.right.
+            simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of SimpleLineFollow.robot.a_to_d.e, allocate an
+            // array of trigger pointers for downstream reactions through port SimpleLineFollow.robot.a_to_d.e.right
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &simplelinefollow_robot_a_to_d_e_self[src_runtime]->base.allocations); 
+            simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges SimpleLineFollow.robot.a_to_d.e.left(0,1)->[SimpleLineFollow.robot.a_to_d.e.left(0,1)] and SimpleLineFollow.robot.a_to_d.e.left(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.a_to_d.e.left(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Port SimpleLineFollow.robot.a_to_d.e.left has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_a_to_d_self[dst_runtime]->_lf_e.left_trigger;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges SimpleLineFollow.robot.a_to_d.e.right(0,1)->[SimpleLineFollow.robot.a_to_d.e.right(0,1)] and SimpleLineFollow.robot.a_to_d.e.right(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range SimpleLineFollow.robot.a_to_d.e.right(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Port SimpleLineFollow.robot.a_to_d.e.right has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &simplelinefollow_robot_a_to_d_self[dst_runtime]->_lf_e.right_trigger;
+            }
+        }
+    }
+    
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.a_to_d.e
+    // **** End of non-nested deferred initialize for SimpleLineFollow.robot.a_to_d
     // **** End of non-nested deferred initialize for SimpleLineFollow.robot
     // **** Start non-nested deferred initialize for SimpleLineFollow.IRSensor
     
@@ -971,6 +2686,178 @@ void _lf_initialize_trigger_objects() {
             simplelinefollow_robot_motors_self[dst_runtime]->_lf_right_power = (_motors_right_power_t*)&simplelinefollow_robot_self[src_runtime]->_lf_motors.right_power;
         }
     }
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.gyro.
+    // Connect SimpleLineFollow.robot.gyro.trigger(0,1)->[SimpleLineFollow.robot.gyro.g.trigger(0,1)] to port SimpleLineFollow.robot.gyro.g.trigger(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.gyro.trigger(0,1)->[SimpleLineFollow.robot.gyro.g.trigger(0,1)] and SimpleLineFollow.robot.gyro.g.trigger(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.gyro.g.trigger(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_gyro_g_self[dst_runtime]->_lf_trigger = (_gyro_trigger_t*)&simplelinefollow_robot_self[src_runtime]->_lf_gyro.trigger;
+        }
+    }
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.gyro.g.
+    // Connect SimpleLineFollow.robot.gyro.g.x(0,1)->[SimpleLineFollow.robot.gyro.integrator1.in(0,1)] to port SimpleLineFollow.robot.gyro.integrator1.in(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.gyro.g.x(0,1)->[SimpleLineFollow.robot.gyro.integrator1.in(0,1)] and SimpleLineFollow.robot.gyro.integrator1.in(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.gyro.integrator1.in(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_gyro_integrator1_self[dst_runtime]->_lf_in = (_trapezoidalintegrator_in_t*)&simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_x;
+        }
+    }
+    // Connect SimpleLineFollow.robot.gyro.g.y(0,1)->[SimpleLineFollow.robot.gyro.integrator2.in(0,1)] to port SimpleLineFollow.robot.gyro.integrator2.in(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.gyro.g.y(0,1)->[SimpleLineFollow.robot.gyro.integrator2.in(0,1)] and SimpleLineFollow.robot.gyro.integrator2.in(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.gyro.integrator2.in(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_gyro_integrator2_self[dst_runtime]->_lf_in = (_trapezoidalintegrator_in_t*)&simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_y;
+        }
+    }
+    // Connect SimpleLineFollow.robot.gyro.g.z(0,1)->[SimpleLineFollow.robot.gyro.integrator3.in(0,1)] to port SimpleLineFollow.robot.gyro.integrator3.in(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.gyro.g.z(0,1)->[SimpleLineFollow.robot.gyro.integrator3.in(0,1)] and SimpleLineFollow.robot.gyro.integrator3.in(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.gyro.integrator3.in(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_gyro_integrator3_self[dst_runtime]->_lf_in = (_trapezoidalintegrator_in_t*)&simplelinefollow_robot_gyro_g_self[src_runtime]->_lf_z;
+        }
+    }
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.gyro.integrator1.
+    
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.gyro.integrator2.
+    
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.gyro.integrator3.
+    // Connect SimpleLineFollow.robot.gyro.integrator3.out(0,1)->[SimpleLineFollow.robot.gyro.z(0,1)] to port SimpleLineFollow.robot.gyro.z(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.gyro.integrator3.out(0,1)->[SimpleLineFollow.robot.gyro.z(0,1)] and SimpleLineFollow.robot.gyro.z(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.gyro.z(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_self[dst_runtime]->_lf_gyro.z = (_gyroangle_z_t*)&simplelinefollow_robot_gyro_integrator3_self[src_runtime]->_lf_out;
+        }
+    }
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.a_to_d.
+    // Connect SimpleLineFollow.robot.a_to_d.left_distance(0,1)->[SimpleLineFollow.robot.a_to_d.left_distance(0,1)] to port SimpleLineFollow.robot.a_to_d.left_distance(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.a_to_d.left_distance(0,1)->[SimpleLineFollow.robot.a_to_d.left_distance(0,1)] and SimpleLineFollow.robot.a_to_d.left_distance(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.a_to_d.left_distance(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_self[dst_runtime]->_lf_a_to_d.left_distance = (_angletodistance_left_distance_t*)&simplelinefollow_robot_a_to_d_self[src_runtime]->_lf_left_distance;
+        }
+    }
+    
+    // Connect inputs and outputs for reactor SimpleLineFollow.robot.a_to_d.e.
+    // Connect SimpleLineFollow.robot.a_to_d.e.trigger(0,1)->[SimpleLineFollow.robot.a_to_d.e.trigger(0,1)] to port SimpleLineFollow.robot.a_to_d.e.trigger(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.a_to_d.e.trigger(0,1)->[SimpleLineFollow.robot.a_to_d.e.trigger(0,1)] and SimpleLineFollow.robot.a_to_d.e.trigger(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.a_to_d.e.trigger(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_a_to_d_e_self[dst_runtime]->_lf_trigger = (_encoders_trigger_t*)&simplelinefollow_robot_a_to_d_self[src_runtime]->_lf_e.trigger;
+        }
+    }
+    // Connect SimpleLineFollow.robot.a_to_d.e.right(0,1)->[SimpleLineFollow.robot.a_to_d.e.right(0,1)] to port SimpleLineFollow.robot.a_to_d.e.right(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.a_to_d.e.right(0,1)->[SimpleLineFollow.robot.a_to_d.e.right(0,1)] and SimpleLineFollow.robot.a_to_d.e.right(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.a_to_d.e.right(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_a_to_d_self[dst_runtime]->_lf_e.right = (_encoders_right_t*)&simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf_right;
+        }
+    }
+    // Connect SimpleLineFollow.robot.a_to_d.e.left(0,1)->[SimpleLineFollow.robot.a_to_d.e.left(0,1)] to port SimpleLineFollow.robot.a_to_d.e.left(0,1)
+    // Iterate over ranges SimpleLineFollow.robot.a_to_d.e.left(0,1)->[SimpleLineFollow.robot.a_to_d.e.left(0,1)] and SimpleLineFollow.robot.a_to_d.e.left(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range SimpleLineFollow.robot.a_to_d.e.left(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            simplelinefollow_robot_a_to_d_self[dst_runtime]->_lf_e.left = (_encoders_left_t*)&simplelinefollow_robot_a_to_d_e_self[src_runtime]->_lf_left;
+        }
+    }
     // Connect inputs and outputs for reactor SimpleLineFollow.IRSensor.
     // Connect SimpleLineFollow.IRSensor.IR_1_out(0,1)->[SimpleLineFollow.robot.IR_1_val(0,1)] to port SimpleLineFollow.robot.IR_1_val(0,1)
     // Iterate over ranges SimpleLineFollow.IRSensor.IR_1_out(0,1)->[SimpleLineFollow.robot.IR_1_val(0,1)] and SimpleLineFollow.robot.IR_1_val(0,1).
@@ -1030,14 +2917,135 @@ void _lf_initialize_trigger_objects() {
     {
         {
         }
+        {
+            {
+            }
+            {
+            }
+            {
+            }
+            {
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    // Add port SimpleLineFollow.robot.gyro.g.x to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[0 + count] = &simplelinefollow_robot_gyro_g_self[0]->_lf_x.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.gyro.g.x to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[0 + count] = &simplelinefollow_robot_gyro_g_self[0]->_lf_x.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                    // Add port SimpleLineFollow.robot.gyro.g.y to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[0 + count] = &simplelinefollow_robot_gyro_g_self[0]->_lf_y.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.gyro.g.y to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[0 + count] = &simplelinefollow_robot_gyro_g_self[0]->_lf_y.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                    // Add port SimpleLineFollow.robot.gyro.g.z to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[0 + count] = &simplelinefollow_robot_gyro_g_self[0]->_lf_z.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.gyro.g.z to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[0 + count] = &simplelinefollow_robot_gyro_g_self[0]->_lf_z.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    // Add port SimpleLineFollow.robot.gyro.integrator1.out to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[3 + count] = &simplelinefollow_robot_gyro_integrator1_self[0]->_lf_out.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.gyro.integrator1.out to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[3 + count] = &simplelinefollow_robot_gyro_integrator1_self[0]->_lf_out.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    // Add port SimpleLineFollow.robot.gyro.integrator2.out to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[4 + count] = &simplelinefollow_robot_gyro_integrator2_self[0]->_lf_out.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.gyro.integrator2.out to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[4 + count] = &simplelinefollow_robot_gyro_integrator2_self[0]->_lf_out.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    // Add port SimpleLineFollow.robot.gyro.integrator3.out to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[5 + count] = &simplelinefollow_robot_gyro_integrator3_self[0]->_lf_out.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.gyro.integrator3.out to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[5 + count] = &simplelinefollow_robot_gyro_integrator3_self[0]->_lf_out.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+        }
+        {
+            {
+            }
+            // Add port SimpleLineFollow.robot.a_to_d.e.trigger to array of is_present fields.
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    {
+                        envs[simplelinefollow_main].is_present_fields[6 + count] = &simplelinefollow_robot_a_to_d_self[0]->_lf_e.trigger.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        envs[simplelinefollow_main]._lf_intended_tag_fields[6 + count] = &simplelinefollow_robot_a_to_d_self[0]->_lf_e.trigger.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    // Add port SimpleLineFollow.robot.a_to_d.e.right to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[7 + count] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf_right.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.a_to_d.e.right to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[7 + count] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf_right.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                    // Add port SimpleLineFollow.robot.a_to_d.e.left to array of is_present fields.
+                    envs[simplelinefollow_main].is_present_fields[7 + count] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf_left.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port SimpleLineFollow.robot.a_to_d.e.left to array of intended_tag fields.
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[7 + count] = &simplelinefollow_robot_a_to_d_e_self[0]->_lf_left.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+        }
+        // Add port SimpleLineFollow.robot.gyro.trigger to array of is_present fields.
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+                {
+                    envs[simplelinefollow_main].is_present_fields[9 + count] = &simplelinefollow_robot_self[0]->_lf_gyro.trigger.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[9 + count] = &simplelinefollow_robot_self[0]->_lf_gyro.trigger.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+        }
         // Add port SimpleLineFollow.robot.motors.left_power to array of is_present fields.
         {
             int count = 0; SUPPRESS_UNUSED_WARNING(count);
             {
                 {
-                    envs[simplelinefollow_main].is_present_fields[0 + count] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
+                    envs[simplelinefollow_main].is_present_fields[10 + count] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.is_present;
                     #ifdef FEDERATED_DECENTRALIZED
-                    envs[simplelinefollow_main]._lf_intended_tag_fields[0 + count] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.intended_tag;
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[10 + count] = &simplelinefollow_robot_self[0]->_lf_motors.left_power.intended_tag;
                     #endif // FEDERATED_DECENTRALIZED
                     count++;
                 }
@@ -1048,12 +3056,46 @@ void _lf_initialize_trigger_objects() {
             int count = 0; SUPPRESS_UNUSED_WARNING(count);
             {
                 {
-                    envs[simplelinefollow_main].is_present_fields[1 + count] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
+                    envs[simplelinefollow_main].is_present_fields[11 + count] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.is_present;
                     #ifdef FEDERATED_DECENTRALIZED
-                    envs[simplelinefollow_main]._lf_intended_tag_fields[1 + count] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.intended_tag;
+                    envs[simplelinefollow_main]._lf_intended_tag_fields[11 + count] = &simplelinefollow_robot_self[0]->_lf_motors.right_power.intended_tag;
                     #endif // FEDERATED_DECENTRALIZED
                     count++;
                 }
+            }
+        }
+        {
+            // Add action SimpleLineFollow.robot.action_wait to array of is_present fields.
+            envs[simplelinefollow_main].is_present_fields[12] 
+                    = &simplelinefollow_robot_self[0]->_lf_action_wait.is_present;
+            #ifdef FEDERATED_DECENTRALIZED
+            // Add action SimpleLineFollow.robot.action_wait to array of intended_tag fields.
+            envs[simplelinefollow_main]._lf_intended_tag_fields[12] 
+                    = &simplelinefollow_robot_self[0]->_lf_action_wait.intended_tag;
+            #endif // FEDERATED_DECENTRALIZED
+        }
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+            }
+        }
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+                // Add port SimpleLineFollow.robot.a_to_d.left_distance to array of is_present fields.
+                envs[simplelinefollow_main].is_present_fields[13 + count] = &simplelinefollow_robot_a_to_d_self[0]->_lf_left_distance.is_present;
+                #ifdef FEDERATED_DECENTRALIZED
+                // Add port SimpleLineFollow.robot.a_to_d.left_distance to array of intended_tag fields.
+                envs[simplelinefollow_main]._lf_intended_tag_fields[13 + count] = &simplelinefollow_robot_a_to_d_self[0]->_lf_left_distance.intended_tag;
+                #endif // FEDERATED_DECENTRALIZED
+                count++;
+                // Add port SimpleLineFollow.robot.a_to_d.right_distance to array of is_present fields.
+                envs[simplelinefollow_main].is_present_fields[13 + count] = &simplelinefollow_robot_a_to_d_self[0]->_lf_right_distance.is_present;
+                #ifdef FEDERATED_DECENTRALIZED
+                // Add port SimpleLineFollow.robot.a_to_d.right_distance to array of intended_tag fields.
+                envs[simplelinefollow_main]._lf_intended_tag_fields[13 + count] = &simplelinefollow_robot_a_to_d_self[0]->_lf_right_distance.intended_tag;
+                #endif // FEDERATED_DECENTRALIZED
+                count++;
             }
         }
     }
@@ -1065,31 +3107,31 @@ void _lf_initialize_trigger_objects() {
         int count = 0; SUPPRESS_UNUSED_WARNING(count);
         {
             // Add port SimpleLineFollow.robot.notify1 to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
+            envs[simplelinefollow_main].is_present_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify1.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.robot.notify1 to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify1.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify1.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
             // Add port SimpleLineFollow.robot.notify2 to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
+            envs[simplelinefollow_main].is_present_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify2.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.robot.notify2 to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify2.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify2.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
             // Add port SimpleLineFollow.robot.notify3 to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify3.is_present;
+            envs[simplelinefollow_main].is_present_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify3.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.robot.notify3 to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify3.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify3.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
             // Add port SimpleLineFollow.robot.notify4 to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify4.is_present;
+            envs[simplelinefollow_main].is_present_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify4.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.robot.notify4 to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[2 + count] = &simplelinefollow_robot_self[0]->_lf_notify4.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[15 + count] = &simplelinefollow_robot_self[0]->_lf_notify4.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
         }
@@ -1098,24 +3140,24 @@ void _lf_initialize_trigger_objects() {
         int count = 0; SUPPRESS_UNUSED_WARNING(count);
         {
             // Add port SimpleLineFollow.IRSensor.IR_1_out to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[6 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_1_out.is_present;
+            envs[simplelinefollow_main].is_present_fields[19 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_1_out.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.IRSensor.IR_1_out to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[6 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_1_out.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[19 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_1_out.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
             // Add port SimpleLineFollow.IRSensor.IR_LEFT_out to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[6 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_LEFT_out.is_present;
+            envs[simplelinefollow_main].is_present_fields[19 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_LEFT_out.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.IRSensor.IR_LEFT_out to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[6 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_LEFT_out.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[19 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_LEFT_out.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
             // Add port SimpleLineFollow.IRSensor.IR_RIGHT_out to array of is_present fields.
-            envs[simplelinefollow_main].is_present_fields[6 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_RIGHT_out.is_present;
+            envs[simplelinefollow_main].is_present_fields[19 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_RIGHT_out.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port SimpleLineFollow.IRSensor.IR_RIGHT_out to array of intended_tag fields.
-            envs[simplelinefollow_main]._lf_intended_tag_fields[6 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_RIGHT_out.intended_tag;
+            envs[simplelinefollow_main]._lf_intended_tag_fields[19 + count] = &simplelinefollow_irsensor_self[0]->_lf_IR_RIGHT_out.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
         }
@@ -1131,9 +3173,37 @@ void _lf_initialize_trigger_objects() {
             // deadline 9223372036854775807 shifted left 16 bits.
             simplelinefollow_robot_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
             simplelinefollow_robot_self[0]->_lf__reaction_1.chain_id = 1;
+            // index is the OR of level 1 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_2.chain_id = 1;
             // index is the OR of level 4 and 
             // deadline 9223372036854775807 shifted left 16 bits.
-            simplelinefollow_robot_self[0]->_lf__reaction_1.index = 0xffffffffffff0004LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_2.index = 0xffffffffffff0004LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_3.chain_id = 1;
+            // index is the OR of level 5 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_3.index = 0xffffffffffff0005LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_4.chain_id = 1;
+            // index is the OR of level 6 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_4.index = 0xffffffffffff0006LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_5.chain_id = 1;
+            // index is the OR of level 7 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_5.index = 0xffffffffffff0007LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_6.chain_id = 1;
+            // index is the OR of level 8 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_6.index = 0xffffffffffff0008LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_7.chain_id = 1;
+            // index is the OR of level 9 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_7.index = 0xffffffffffff0009LL;
+            simplelinefollow_robot_self[0]->_lf__reaction_8.chain_id = 1;
+            // index is the OR of level 10 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            simplelinefollow_robot_self[0]->_lf__reaction_8.index = 0xffffffffffff000aLL;
         
             // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.motors
             {
@@ -1142,13 +3212,88 @@ void _lf_initialize_trigger_objects() {
                 // deadline 9223372036854775807 shifted left 16 bits.
                 simplelinefollow_robot_motors_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
                 simplelinefollow_robot_motors_self[0]->_lf__reaction_1.chain_id = 1;
-                // index is the OR of level 5 and 
+                // index is the OR of level 11 and 
                 // deadline 9223372036854775807 shifted left 16 bits.
-                simplelinefollow_robot_motors_self[0]->_lf__reaction_1.index = 0xffffffffffff0005LL;
+                simplelinefollow_robot_motors_self[0]->_lf__reaction_1.index = 0xffffffffffff000bLL;
                 simplelinefollow_robot_motors_self[0]->_lf__reaction_2.chain_id = 1;
-                // index is the OR of level 6 and 
+                // index is the OR of level 12 and 
                 // deadline 9223372036854775807 shifted left 16 bits.
-                simplelinefollow_robot_motors_self[0]->_lf__reaction_2.index = 0xffffffffffff0006LL;
+                simplelinefollow_robot_motors_self[0]->_lf__reaction_2.index = 0xffffffffffff000cLL;
+            }
+        
+        
+            // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.gyro
+            {
+            
+                // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.gyro.g
+                {
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 0 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.chain_id = 1;
+                    // index is the OR of level 1 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_gyro_g_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
+                }
+            
+            
+                // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.gyro.integrator1
+                {
+                    simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 2 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_gyro_integrator1_self[0]->_lf__reaction_0.index = 0xffffffffffff0002LL;
+                }
+            
+            
+                // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.gyro.integrator2
+                {
+                    simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 2 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_gyro_integrator2_self[0]->_lf__reaction_0.index = 0xffffffffffff0002LL;
+                }
+            
+            
+                // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.gyro.integrator3
+                {
+                    simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 2 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_gyro_integrator3_self[0]->_lf__reaction_0.index = 0xffffffffffff0002LL;
+                }
+            
+            }
+        
+        
+            // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.a_to_d
+            {
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.chain_id = 1;
+                // index is the OR of level 0 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.chain_id = 1;
+                // index is the OR of level 2 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_1.index = 0xffffffffffff0002LL;
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.chain_id = 1;
+                // index is the OR of level 3 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                simplelinefollow_robot_a_to_d_self[0]->_lf__reaction_2.index = 0xffffffffffff0003LL;
+            
+                // Set reaction priorities for ReactorInstance SimpleLineFollow.robot.a_to_d.e
+                {
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 0 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.chain_id = 1;
+                    // index is the OR of level 1 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    simplelinefollow_robot_a_to_d_e_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
+                }
+            
             }
         
         }
@@ -1182,9 +3327,9 @@ void _lf_initialize_trigger_objects() {
             // deadline 9223372036854775807 shifted left 16 bits.
             simplelinefollow_display_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
             simplelinefollow_display_self[0]->_lf__reaction_1.chain_id = 1;
-            // index is the OR of level 5 and 
+            // index is the OR of level 11 and 
             // deadline 9223372036854775807 shifted left 16 bits.
-            simplelinefollow_display_self[0]->_lf__reaction_1.index = 0xffffffffffff0005LL;
+            simplelinefollow_display_self[0]->_lf__reaction_1.index = 0xffffffffffff000bLL;
         }
     
     }

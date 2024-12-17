@@ -1,13 +1,26 @@
 #ifndef _simplelinefollow_main_H
 #define _simplelinefollow_main_H
-#ifndef TOP_LEVEL_PREAMBLE_368242083_H
-#define TOP_LEVEL_PREAMBLE_368242083_H
-/*Correspondence: Range: [(18, 4), (23, 19)) -> Range: [(0, 0), (5, 19)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf)*/#include <stdio.h>
-#include "pico/stdlib.h"
-#include "hardware/adc.h"
+#ifndef TOP_LEVEL_PREAMBLE_790538253_H
+#define TOP_LEVEL_PREAMBLE_790538253_H
+/*Correspondence: Range: [(20, 4), (38, 17)) -> Range: [(0, 0), (18, 17)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf)*/#include <stdio.h>
+#include <pico/stdlib.h>
+#include <hardware/gpio.h>
+#include <hardware/uart.h>
+#include <string.h>
+#include <hardware/adc.h>
+#include <math.h>
 #define IR_1 26
 #define IR_LEFT 23
 #define IR_RIGHT 16
+#define UART_ID uart0
+#define BAUD_RATE 115200
+#define UART_TX_PIN 28
+#define UART_RX_PIN 29
+static float start_angle;
+static float start_dist;
+// float lpower = 0.0f;
+// float rpower = 0.0f;
+// char lastMode;
 /*Correspondence: Range: [(18, 2), (19, 68)) -> Range: [(0, 0), (1, 68)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/lib/Display.lf)*/#include <pico/stdlib.h>
 #include <display.h>        // Do not use "display.h". Doesn't work.
 #endif
@@ -39,6 +52,15 @@ typedef struct {
     size_t length;
     bool is_present;
     lf_port_internal_t _base;
+    string value;
+
+} robotlinefollower_command_t;
+typedef struct {
+    token_type_t type;
+    lf_token_t* token;
+    size_t length;
+    bool is_present;
+    lf_port_internal_t _base;
     uint16_t value;
 
 } robotlinefollower_IR_1_val_t;
@@ -60,6 +82,15 @@ typedef struct {
     bool value;
 
 } robotlinefollower_IR_RIGHT_val_t;
+typedef struct {
+    token_type_t type;
+    lf_token_t* token;
+    size_t length;
+    bool is_present;
+    lf_port_internal_t _base;
+    int value;
+
+} robotlinefollower_external_turn_command_t;
 typedef struct {
     token_type_t type;
     lf_token_t* token;

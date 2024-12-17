@@ -1,13 +1,26 @@
 #ifndef _irsensorreader_H
 #define _irsensorreader_H
-#ifndef TOP_LEVEL_PREAMBLE_368242083_H
-#define TOP_LEVEL_PREAMBLE_368242083_H
-/*Correspondence: Range: [(18, 4), (23, 19)) -> Range: [(0, 0), (5, 19)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf)*/#include <stdio.h>
-#include "pico/stdlib.h"
-#include "hardware/adc.h"
+#ifndef TOP_LEVEL_PREAMBLE_790538253_H
+#define TOP_LEVEL_PREAMBLE_790538253_H
+/*Correspondence: Range: [(20, 4), (38, 17)) -> Range: [(0, 0), (18, 17)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf)*/#include <stdio.h>
+#include <pico/stdlib.h>
+#include <hardware/gpio.h>
+#include <hardware/uart.h>
+#include <string.h>
+#include <hardware/adc.h>
+#include <math.h>
 #define IR_1 26
 #define IR_LEFT 23
 #define IR_RIGHT 16
+#define UART_ID uart0
+#define BAUD_RATE 115200
+#define UART_TX_PIN 28
+#define UART_RX_PIN 29
+static float start_angle;
+static float start_dist;
+// float lpower = 0.0f;
+// float rpower = 0.0f;
+// char lastMode;
 #endif
 #ifdef __cplusplus
 extern "C" {

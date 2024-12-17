@@ -15,14 +15,17 @@ int lf_reactor_c_main(int argc, const char* argv[]);
 int main(void) {
    return lf_reactor_c_main(0, NULL);
 }
-const char* _lf_default_argv[] = { "dummy", "-k", "true" };
-void _lf_set_default_command_line_options() {
-        default_argc = 3;
-        default_argv = _lf_default_argv;
-}
-#include "_motors.h"
+void _lf_set_default_command_line_options() {}
 #include "_uartrec.h"
 #include "_display.h"
+#include "_motors.h"
+#include "_gyro.h"
+#include "_trapezoidalintegrator.h"
+#include "_gyroangle.h"
+#include "_encoders.h"
+#include "_angletodistance.h"
+#include "_robotlinefollower.h"
+#include "_robot.h"
 #include "_espdrive_main.h"
 typedef enum {
     espdrive_main,
@@ -32,7 +35,7 @@ typedef enum {
 environment_t envs[_num_enclaves];
 // 'Create' and initialize the environments in the program
 void _lf_create_environments() {
-    environment_init(&envs[espdrive_main],espdrive_main,_lf_number_of_workers,1,4,0,0,6,1,0,NULL);
+    environment_init(&envs[espdrive_main],espdrive_main,_lf_number_of_workers,3,9,0,0,27,3,0,NULL);
 }
 // Update the pointer argument to point to the beginning of the environment array
 // and return the size of that array
@@ -59,10 +62,30 @@ void _lf_initialize_trigger_objects() {
     SUPPRESS_UNUSED_WARNING(espdrive_main_self);
     _uartrec_self_t* espdrive_uart_self[1];
     SUPPRESS_UNUSED_WARNING(espdrive_uart_self);
-    _motors_self_t* espdrive_uart_motors_self[1];
-    SUPPRESS_UNUSED_WARNING(espdrive_uart_motors_self);
     _display_self_t* espdrive_d_self[1];
     SUPPRESS_UNUSED_WARNING(espdrive_d_self);
+    _robot_self_t* espdrive_rob_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_self);
+    _motors_self_t* espdrive_rob_motors_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_motors_self);
+    _robotlinefollower_self_t* espdrive_rob_linefollower_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_linefollower_self);
+    _motors_self_t* espdrive_rob_linefollower_motors_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_linefollower_motors_self);
+    _gyroangle_self_t* espdrive_rob_linefollower_gyro_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_linefollower_gyro_self);
+    _gyro_self_t* espdrive_rob_linefollower_gyro_g_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_linefollower_gyro_g_self);
+    _trapezoidalintegrator_self_t* _drive_rob_linefollower_gyro_integrator1_self[1];
+    SUPPRESS_UNUSED_WARNING(_drive_rob_linefollower_gyro_integrator1_self);
+    _trapezoidalintegrator_self_t* _drive_rob_linefollower_gyro_integrator2_self[1];
+    SUPPRESS_UNUSED_WARNING(_drive_rob_linefollower_gyro_integrator2_self);
+    _trapezoidalintegrator_self_t* _drive_rob_linefollower_gyro_integrator3_self[1];
+    SUPPRESS_UNUSED_WARNING(_drive_rob_linefollower_gyro_integrator3_self);
+    _angletodistance_self_t* espdrive_rob_linefollower_a_to_d_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_linefollower_a_to_d_self);
+    _encoders_self_t* espdrive_rob_linefollower_a_to_d_e_self[1];
+    SUPPRESS_UNUSED_WARNING(espdrive_rob_linefollower_a_to_d_e_self);
     // ***** Start initializing ESPDrive of class ESPDrive
     espdrive_main_self[0] = new__espdrive_main();
     espdrive_main_self[0]->base.environment = &envs[espdrive_main];
@@ -75,14 +98,13 @@ void _lf_initialize_trigger_objects() {
     } // End scoping.
     // Initiaizing timer ESPDrive.t.
     espdrive_main_self[0]->_lf__t.offset = 0;
-    espdrive_main_self[0]->_lf__t.period = MSEC(2000);
+    espdrive_main_self[0]->_lf__t.period = MSEC(1000);
     // Associate timer with the environment of its parent
     envs[espdrive_main].timer_triggers[timer_triggers_count[espdrive_main]++] = &espdrive_main_self[0]->_lf__t;
     espdrive_main_self[0]->_lf__t.mode = NULL;
     
     espdrive_main_self[0]->_lf__reaction_0.deadline = NEVER;
     espdrive_main_self[0]->_lf__reaction_1.deadline = NEVER;
-    espdrive_main_self[0]->_lf__reaction_2.deadline = NEVER;
     {
         // ***** Start initializing ESPDrive.uart of class UARTrec
         espdrive_uart_self[0] = new__uartrec();
@@ -99,23 +121,6 @@ void _lf_initialize_trigger_objects() {
         espdrive_uart_self[0]->_lf__reaction_1.deadline = NEVER;
         // Register for transition handling
         envs[espdrive_main].modes->modal_reactor_states[modal_reactor_count[espdrive_main]++] = &((self_base_t*)espdrive_uart_self[0])->_lf__mode_state;
-        {
-            // ***** Start initializing ESPDrive.uart.motors of class Motors
-            espdrive_uart_motors_self[0] = new__motors();
-            espdrive_uart_motors_self[0]->base.environment = &envs[espdrive_main];
-            bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
-            // width of -2 indicates that it is not a multiport.
-            espdrive_uart_motors_self[0]->_lf_left_power_width = -2;
-            // width of -2 indicates that it is not a multiport.
-            espdrive_uart_motors_self[0]->_lf_right_power_width = -2;
-            envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_uart_motors_self[0]->_lf__reaction_0;
-            SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
-    
-            espdrive_uart_motors_self[0]->_lf__reaction_0.deadline = NEVER;
-            espdrive_uart_motors_self[0]->_lf__reaction_1.deadline = NEVER;
-            espdrive_uart_motors_self[0]->_lf__reaction_2.deadline = NEVER;
-            //***** End initializing ESPDrive.uart.motors
-        }
         //***** End initializing ESPDrive.uart
     }
     {
@@ -137,6 +142,265 @@ void _lf_initialize_trigger_objects() {
         espdrive_d_self[0]->_lf__reaction_0.deadline = NEVER;
         espdrive_d_self[0]->_lf__reaction_1.deadline = NEVER;
         //***** End initializing ESPDrive.d
+    }
+    {
+        // ***** Start initializing ESPDrive.rob of class Robot
+        espdrive_rob_self[0] = new__robot();
+        espdrive_rob_self[0]->base.environment = &envs[espdrive_main];
+        bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+        // width of -2 indicates that it is not a multiport.
+        espdrive_rob_self[0]->_lf_notify_width = -2;
+        // width of -2 indicates that it is not a multiport.
+        espdrive_rob_self[0]->_lf_debug_width = -2;
+        // width of -2 indicates that it is not a multiport.
+        espdrive_rob_self[0]->_lf_cmd_width = -2;
+        envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_rob_self[0]->_lf__reaction_0;
+        SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+        espdrive_rob_self[0]->_lf__reaction_0.deadline = NEVER;
+        espdrive_rob_self[0]->_lf__reaction_1.deadline = NEVER;
+        // Register for transition handling
+        envs[espdrive_main].modes->modal_reactor_states[modal_reactor_count[espdrive_main]++] = &((self_base_t*)espdrive_rob_self[0])->_lf__mode_state;
+        {
+            // ***** Start initializing ESPDrive.rob.motors of class Motors
+            espdrive_rob_motors_self[0] = new__motors();
+            espdrive_rob_motors_self[0]->base.environment = &envs[espdrive_main];
+            bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_motors_self[0]->_lf_left_power_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_motors_self[0]->_lf_right_power_width = -2;
+            envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_rob_motors_self[0]->_lf__reaction_0;
+            SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+            espdrive_rob_motors_self[0]->_lf__reaction_0.deadline = NEVER;
+            espdrive_rob_motors_self[0]->_lf__reaction_1.deadline = NEVER;
+            espdrive_rob_motors_self[0]->_lf__reaction_2.deadline = NEVER;
+            //***** End initializing ESPDrive.rob.motors
+        }
+        {
+            // ***** Start initializing ESPDrive.rob.lineFollower of class RobotLineFollower
+            espdrive_rob_linefollower_self[0] = new__robotlinefollower();
+            espdrive_rob_linefollower_self[0]->base.environment = &envs[espdrive_main];
+            bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_notify1_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_notify2_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_notify3_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_notify4_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_avoidReduceSpeed_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_avoidGoAround_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_IR_1_val_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_IR_LEFT_val_width = -2;
+            // width of -2 indicates that it is not a multiport.
+            espdrive_rob_linefollower_self[0]->_lf_IR_RIGHT_val_width = -2;
+            envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_rob_linefollower_self[0]->_lf__reaction_1;
+            SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+            { // For scoping
+                static int _initial = -1;
+                espdrive_rob_linefollower_self[0]->AGA_next_action = _initial;
+            } // End scoping.
+            // Initiaizing timer ESPDrive.rob.lineFollower.t.
+            espdrive_rob_linefollower_self[0]->_lf__t.offset = 0;
+            espdrive_rob_linefollower_self[0]->_lf__t.period = MSEC(1);
+            // Associate timer with the environment of its parent
+            envs[espdrive_main].timer_triggers[timer_triggers_count[espdrive_main]++] = &espdrive_rob_linefollower_self[0]->_lf__t;
+            espdrive_rob_linefollower_self[0]->_lf__t.mode = NULL;
+    
+            espdrive_rob_linefollower_self[0]->_lf__reaction_0.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_1.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_2.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_3.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_4.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_5.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_6.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_7.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_8.deadline = NEVER;
+            espdrive_rob_linefollower_self[0]->_lf__reaction_9.deadline = NEVER;
+            // Register for transition handling
+            envs[espdrive_main].modes->modal_reactor_states[modal_reactor_count[espdrive_main]++] = &((self_base_t*)espdrive_rob_linefollower_self[0])->_lf__mode_state;
+            {
+                // ***** Start initializing ESPDrive.rob.lineFollower.motors of class Motors
+                espdrive_rob_linefollower_motors_self[0] = new__motors();
+                espdrive_rob_linefollower_motors_self[0]->base.environment = &envs[espdrive_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_motors_self[0]->_lf_left_power_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_motors_self[0]->_lf_right_power_width = -2;
+                envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_rob_linefollower_motors_self[0]->_lf__reaction_0;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+                espdrive_rob_linefollower_motors_self[0]->_lf__reaction_0.deadline = NEVER;
+                espdrive_rob_linefollower_motors_self[0]->_lf__reaction_1.deadline = NEVER;
+                espdrive_rob_linefollower_motors_self[0]->_lf__reaction_2.deadline = NEVER;
+                //***** End initializing ESPDrive.rob.lineFollower.motors
+            }
+            {
+                // ***** Start initializing ESPDrive.rob.lineFollower.gyro of class GyroAngle
+                espdrive_rob_linefollower_gyro_self[0] = new__gyroangle();
+                espdrive_rob_linefollower_gyro_self[0]->base.environment = &envs[espdrive_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_gyro_self[0]->_lf_x_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_gyro_self[0]->_lf_y_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_gyro_self[0]->_lf_z_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_gyro_self[0]->_lf_trigger_width = -2;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+                {
+                    // ***** Start initializing ESPDrive.rob.lineFollower.gyro.g of class Gyro
+                    espdrive_rob_linefollower_gyro_g_self[0] = new__gyro();
+                    espdrive_rob_linefollower_gyro_g_self[0]->base.environment = &envs[espdrive_main];
+                    bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_gyro_g_self[0]->_lf_x_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_gyro_g_self[0]->_lf_y_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_gyro_g_self[0]->_lf_z_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_gyro_g_self[0]->_lf_trigger_width = -2;
+                    envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_0;
+                    SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+                    espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_0.deadline = NEVER;
+                    espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.deadline = NEVER;
+                    //***** End initializing ESPDrive.rob.lineFollower.gyro.g
+                }
+                {
+                    // ***** Start initializing ESPDrive.rob.lineFollower.gyro.integrator1 of class TrapezoidalIntegrator
+                    _drive_rob_linefollower_gyro_integrator1_self[0] = new__trapezoidalintegrator();
+                    _drive_rob_linefollower_gyro_integrator1_self[0]->base.environment = &envs[espdrive_main];
+                    bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                    // width of -2 indicates that it is not a multiport.
+                    _drive_rob_linefollower_gyro_integrator1_self[0]->_lf_out_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    _drive_rob_linefollower_gyro_integrator1_self[0]->_lf_in_width = -2;
+                    SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                    { // For scoping
+                        static float _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->s = _initial;
+                    } // End scoping.
+                    { // For scoping
+                        static float _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->prev_in = _initial;
+                    } // End scoping.
+                    { // For scoping
+                        static instant_t _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->prev_time = _initial;
+                    } // End scoping.
+    
+                    _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.deadline = NEVER;
+                    //***** End initializing ESPDrive.rob.lineFollower.gyro.integrator1
+                }
+                {
+                    // ***** Start initializing ESPDrive.rob.lineFollower.gyro.integrator2 of class TrapezoidalIntegrator
+                    _drive_rob_linefollower_gyro_integrator2_self[0] = new__trapezoidalintegrator();
+                    _drive_rob_linefollower_gyro_integrator2_self[0]->base.environment = &envs[espdrive_main];
+                    bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                    // width of -2 indicates that it is not a multiport.
+                    _drive_rob_linefollower_gyro_integrator2_self[0]->_lf_out_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    _drive_rob_linefollower_gyro_integrator2_self[0]->_lf_in_width = -2;
+                    SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                    { // For scoping
+                        static float _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->s = _initial;
+                    } // End scoping.
+                    { // For scoping
+                        static float _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->prev_in = _initial;
+                    } // End scoping.
+                    { // For scoping
+                        static instant_t _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->prev_time = _initial;
+                    } // End scoping.
+    
+                    _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.deadline = NEVER;
+                    //***** End initializing ESPDrive.rob.lineFollower.gyro.integrator2
+                }
+                {
+                    // ***** Start initializing ESPDrive.rob.lineFollower.gyro.integrator3 of class TrapezoidalIntegrator
+                    _drive_rob_linefollower_gyro_integrator3_self[0] = new__trapezoidalintegrator();
+                    _drive_rob_linefollower_gyro_integrator3_self[0]->base.environment = &envs[espdrive_main];
+                    bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                    // width of -2 indicates that it is not a multiport.
+                    _drive_rob_linefollower_gyro_integrator3_self[0]->_lf_out_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    _drive_rob_linefollower_gyro_integrator3_self[0]->_lf_in_width = -2;
+                    SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                    { // For scoping
+                        static float _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->s = _initial;
+                    } // End scoping.
+                    { // For scoping
+                        static float _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->prev_in = _initial;
+                    } // End scoping.
+                    { // For scoping
+                        static instant_t _initial = 0;
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->prev_time = _initial;
+                    } // End scoping.
+    
+                    _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.deadline = NEVER;
+                    //***** End initializing ESPDrive.rob.lineFollower.gyro.integrator3
+                }
+                //***** End initializing ESPDrive.rob.lineFollower.gyro
+            }
+            {
+                // ***** Start initializing ESPDrive.rob.lineFollower.a_to_d of class AngleToDistance
+                espdrive_rob_linefollower_a_to_d_self[0] = new__angletodistance();
+                espdrive_rob_linefollower_a_to_d_self[0]->base.environment = &envs[espdrive_main];
+                bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf_left_distance_width = -2;
+                // width of -2 indicates that it is not a multiport.
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf_right_distance_width = -2;
+                SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+                // Initiaizing timer ESPDrive.rob.lineFollower.a_to_d.t.
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf__t.offset = 0;
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf__t.period = MSEC(10);
+                // Associate timer with the environment of its parent
+                envs[espdrive_main].timer_triggers[timer_triggers_count[espdrive_main]++] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf__t;
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf__t.mode = NULL;
+    
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.deadline = NEVER;
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.deadline = NEVER;
+                espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.deadline = NEVER;
+                {
+                    // ***** Start initializing ESPDrive.rob.lineFollower.a_to_d.e of class Encoders
+                    espdrive_rob_linefollower_a_to_d_e_self[0] = new__encoders();
+                    espdrive_rob_linefollower_a_to_d_e_self[0]->base.environment = &envs[espdrive_main];
+                    bank_index = 0; SUPPRESS_UNUSED_WARNING(bank_index);
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_right_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_left_width = -2;
+                    // width of -2 indicates that it is not a multiport.
+                    espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_trigger_width = -2;
+                    envs[espdrive_main].startup_reactions[startup_reaction_count[espdrive_main]++] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_0;
+                    SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);
+    
+                    espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_0.deadline = NEVER;
+                    espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.deadline = NEVER;
+                    //***** End initializing ESPDrive.rob.lineFollower.a_to_d.e
+                }
+                //***** End initializing ESPDrive.rob.lineFollower.a_to_d
+            }
+            //***** End initializing ESPDrive.rob.lineFollower
+        }
+        //***** End initializing ESPDrive.rob
     }
     //***** End initializing ESPDrive
     // **** Start deferred initialize for ESPDrive
@@ -177,124 +441,55 @@ void _lf_initialize_trigger_objects() {
         }
         
         // ** End initialization for reaction 1 of ESPDrive
-        // Total number of outputs (single ports and multiport channels)
-        // produced by reaction_2 of ESPDrive.
-        espdrive_main_self[0]->_lf__reaction_2.num_outputs = 1;
-        // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
-        // struct for this reaction.
-        espdrive_main_self[0]->_lf__reaction_2.triggers = (trigger_t***)_lf_allocate(
-                1, sizeof(trigger_t**),
-                &espdrive_main_self[0]->base.allocations);
-        espdrive_main_self[0]->_lf__reaction_2.triggered_sizes = (int*)_lf_allocate(
-                1, sizeof(int),
-                &espdrive_main_self[0]->base.allocations);
-        espdrive_main_self[0]->_lf__reaction_2.output_produced = (bool**)_lf_allocate(
-                1, sizeof(bool*),
-                &espdrive_main_self[0]->base.allocations);
-        {
-            int count = 0; SUPPRESS_UNUSED_WARNING(count);
-            // Reaction writes to an input of a contained reactor.
-            {
-                espdrive_main_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_main_self[0]->_lf_d.line1.is_present;
-            }
-        }
-        
-        // ** End initialization for reaction 2 of ESPDrive
     
         // **** Start deferred initialize for ESPDrive.uart
         {
         
             // Total number of outputs (single ports and multiport channels)
             // produced by reaction_0 of ESPDrive.uart.
-            espdrive_uart_self[0]->_lf__reaction_0.num_outputs = 3;
+            espdrive_uart_self[0]->_lf__reaction_0.num_outputs = 1;
             // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
             // struct for this reaction.
             espdrive_uart_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
-                    3, sizeof(trigger_t**),
+                    1, sizeof(trigger_t**),
                     &espdrive_uart_self[0]->base.allocations);
             espdrive_uart_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
-                    3, sizeof(int),
+                    1, sizeof(int),
                     &espdrive_uart_self[0]->base.allocations);
             espdrive_uart_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
-                    3, sizeof(bool*),
+                    1, sizeof(bool*),
                     &espdrive_uart_self[0]->base.allocations);
             {
                 int count = 0; SUPPRESS_UNUSED_WARNING(count);
                 {
                     espdrive_uart_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_uart_self[0]->_lf_mess.is_present;
                 }
-                // Reaction writes to an input of a contained reactor.
-                {
-                    espdrive_uart_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_uart_self[0]->_lf_motors.left_power.is_present;
-                }
-                // Reaction writes to an input of a contained reactor.
-                {
-                    espdrive_uart_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_uart_self[0]->_lf_motors.right_power.is_present;
-                }
             }
             
             // ** End initialization for reaction 0 of ESPDrive.uart
             // Total number of outputs (single ports and multiport channels)
             // produced by reaction_1 of ESPDrive.uart.
-            espdrive_uart_self[0]->_lf__reaction_1.num_outputs = 3;
+            espdrive_uart_self[0]->_lf__reaction_1.num_outputs = 1;
             // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
             // struct for this reaction.
             espdrive_uart_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
-                    3, sizeof(trigger_t**),
+                    1, sizeof(trigger_t**),
                     &espdrive_uart_self[0]->base.allocations);
             espdrive_uart_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
-                    3, sizeof(int),
+                    1, sizeof(int),
                     &espdrive_uart_self[0]->base.allocations);
             espdrive_uart_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
-                    3, sizeof(bool*),
+                    1, sizeof(bool*),
                     &espdrive_uart_self[0]->base.allocations);
             {
                 int count = 0; SUPPRESS_UNUSED_WARNING(count);
                 {
                     espdrive_uart_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_uart_self[0]->_lf_mess.is_present;
                 }
-                // Reaction writes to an input of a contained reactor.
-                {
-                    espdrive_uart_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_uart_self[0]->_lf_motors.left_power.is_present;
-                }
-                // Reaction writes to an input of a contained reactor.
-                {
-                    espdrive_uart_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_uart_self[0]->_lf_motors.right_power.is_present;
-                }
             }
             
             // ** End initialization for reaction 1 of ESPDrive.uart
         
-            // **** Start deferred initialize for ESPDrive.uart.motors
-            {
-            
-                // Total number of outputs (single ports and multiport channels)
-                // produced by reaction_0 of ESPDrive.uart.motors.
-                espdrive_uart_motors_self[0]->_lf__reaction_0.num_outputs = 0;
-                {
-                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
-                }
-                
-                // ** End initialization for reaction 0 of ESPDrive.uart.motors
-                // Total number of outputs (single ports and multiport channels)
-                // produced by reaction_1 of ESPDrive.uart.motors.
-                espdrive_uart_motors_self[0]->_lf__reaction_1.num_outputs = 0;
-                {
-                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
-                }
-                
-                // ** End initialization for reaction 1 of ESPDrive.uart.motors
-                // Total number of outputs (single ports and multiport channels)
-                // produced by reaction_2 of ESPDrive.uart.motors.
-                espdrive_uart_motors_self[0]->_lf__reaction_2.num_outputs = 0;
-                {
-                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
-                }
-                
-                // ** End initialization for reaction 2 of ESPDrive.uart.motors
-            
-            }
-            // **** End of deferred initialize for ESPDrive.uart.motors
         }
         // **** End of deferred initialize for ESPDrive.uart
         // **** Start deferred initialize for ESPDrive.d
@@ -319,6 +514,676 @@ void _lf_initialize_trigger_objects() {
         
         }
         // **** End of deferred initialize for ESPDrive.d
+        // **** Start deferred initialize for ESPDrive.rob
+        {
+        
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_0 of ESPDrive.rob.
+            espdrive_rob_self[0]->_lf__reaction_0.num_outputs = 2;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            espdrive_rob_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                    2, sizeof(trigger_t**),
+                    &espdrive_rob_self[0]->base.allocations);
+            espdrive_rob_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                    2, sizeof(int),
+                    &espdrive_rob_self[0]->base.allocations);
+            espdrive_rob_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                    2, sizeof(bool*),
+                    &espdrive_rob_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    espdrive_rob_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_rob_self[0]->_lf_notify.is_present;
+                }
+                {
+                    espdrive_rob_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_rob_self[0]->_lf_debug.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 0 of ESPDrive.rob
+            // Total number of outputs (single ports and multiport channels)
+            // produced by reaction_1 of ESPDrive.rob.
+            espdrive_rob_self[0]->_lf__reaction_1.num_outputs = 6;
+            // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+            // struct for this reaction.
+            espdrive_rob_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                    6, sizeof(trigger_t**),
+                    &espdrive_rob_self[0]->base.allocations);
+            espdrive_rob_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                    6, sizeof(int),
+                    &espdrive_rob_self[0]->base.allocations);
+            espdrive_rob_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                    6, sizeof(bool*),
+                    &espdrive_rob_self[0]->base.allocations);
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    espdrive_rob_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_self[0]->_lf_notify.is_present;
+                }
+                {
+                    espdrive_rob_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_self[0]->_lf_debug.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    espdrive_rob_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_self[0]->_lf_motors.left_power.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    espdrive_rob_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_self[0]->_lf_motors.right_power.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    espdrive_rob_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_self[0]->_lf_lineFollower.avoidReduceSpeed.is_present;
+                }
+                // Reaction writes to an input of a contained reactor.
+                {
+                    espdrive_rob_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_self[0]->_lf_lineFollower.avoidGoAround.is_present;
+                }
+            }
+            
+            // ** End initialization for reaction 1 of ESPDrive.rob
+        
+            // **** Start deferred initialize for ESPDrive.rob.motors
+            {
+            
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_0 of ESPDrive.rob.motors.
+                espdrive_rob_motors_self[0]->_lf__reaction_0.num_outputs = 0;
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                }
+                
+                // ** End initialization for reaction 0 of ESPDrive.rob.motors
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_1 of ESPDrive.rob.motors.
+                espdrive_rob_motors_self[0]->_lf__reaction_1.num_outputs = 0;
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                }
+                
+                // ** End initialization for reaction 1 of ESPDrive.rob.motors
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_2 of ESPDrive.rob.motors.
+                espdrive_rob_motors_self[0]->_lf__reaction_2.num_outputs = 0;
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                }
+                
+                // ** End initialization for reaction 2 of ESPDrive.rob.motors
+            
+            }
+            // **** End of deferred initialize for ESPDrive.rob.motors
+            // **** Start deferred initialize for ESPDrive.rob.lineFollower
+            {
+            
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_0 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_0.num_outputs = 1;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                        1, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                        1, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                        1, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_gyro.trigger.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_1 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_1.num_outputs = 1;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                        1, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                        1, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                        1, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify1.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 1 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_2 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_2.num_outputs = 6;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_2.triggers = (trigger_t***)_lf_allocate(
+                        6, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_2.triggered_sizes = (int*)_lf_allocate(
+                        6, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced = (bool**)_lf_allocate(
+                        6, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify1.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify2.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify3.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify4.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 2 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_3 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_3.num_outputs = 4;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_3.triggers = (trigger_t***)_lf_allocate(
+                        4, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_3.triggered_sizes = (int*)_lf_allocate(
+                        4, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_3.output_produced = (bool**)_lf_allocate(
+                        4, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_3.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify2.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_3.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify4.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_3.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_3.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 3 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_4 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_4.num_outputs = 2;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_4.triggers = (trigger_t***)_lf_allocate(
+                        2, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_4.triggered_sizes = (int*)_lf_allocate(
+                        2, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_4.output_produced = (bool**)_lf_allocate(
+                        2, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_4.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_4.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 4 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_5 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_5.num_outputs = 0;
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                }
+                
+                // ** End initialization for reaction 5 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_6 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_6.num_outputs = 5;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_6.triggers = (trigger_t***)_lf_allocate(
+                        5, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_6.triggered_sizes = (int*)_lf_allocate(
+                        5, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_6.output_produced = (bool**)_lf_allocate(
+                        5, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_6.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify1.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_6.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify2.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_6.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify4.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_6.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_6.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 6 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_7 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_7.num_outputs = 5;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_7.triggers = (trigger_t***)_lf_allocate(
+                        5, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_7.triggered_sizes = (int*)_lf_allocate(
+                        5, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_7.output_produced = (bool**)_lf_allocate(
+                        5, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_7.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify1.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_7.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify2.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_7.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify4.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_7.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_7.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 7 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_8 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_8.num_outputs = 5;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_8.triggers = (trigger_t***)_lf_allocate(
+                        5, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_8.triggered_sizes = (int*)_lf_allocate(
+                        5, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_8.output_produced = (bool**)_lf_allocate(
+                        5, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_8.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify1.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_8.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify2.is_present;
+                    }
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_8.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_notify4.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_8.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_8.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 8 of ESPDrive.rob.lineFollower
+                // Total number of outputs (single ports and multiport channels)
+                // produced by reaction_9 of ESPDrive.rob.lineFollower.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_9.num_outputs = 2;
+                // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                // struct for this reaction.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_9.triggers = (trigger_t***)_lf_allocate(
+                        2, sizeof(trigger_t**),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_9.triggered_sizes = (int*)_lf_allocate(
+                        2, sizeof(int),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                espdrive_rob_linefollower_self[0]->_lf__reaction_9.output_produced = (bool**)_lf_allocate(
+                        2, sizeof(bool*),
+                        &espdrive_rob_linefollower_self[0]->base.allocations);
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_9.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                    }
+                    // Reaction writes to an input of a contained reactor.
+                    {
+                        espdrive_rob_linefollower_self[0]->_lf__reaction_9.output_produced[count++] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                    }
+                }
+                
+                // ** End initialization for reaction 9 of ESPDrive.rob.lineFollower
+            
+                // **** Start deferred initialize for ESPDrive.rob.lineFollower.motors
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of ESPDrive.rob.lineFollower.motors.
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_0.num_outputs = 0;
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    }
+                    
+                    // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.motors
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_1 of ESPDrive.rob.lineFollower.motors.
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_1.num_outputs = 0;
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    }
+                    
+                    // ** End initialization for reaction 1 of ESPDrive.rob.lineFollower.motors
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_2 of ESPDrive.rob.lineFollower.motors.
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_2.num_outputs = 0;
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    }
+                    
+                    // ** End initialization for reaction 2 of ESPDrive.rob.lineFollower.motors
+                
+                }
+                // **** End of deferred initialize for ESPDrive.rob.lineFollower.motors
+                // **** Start deferred initialize for ESPDrive.rob.lineFollower.gyro
+                {
+                
+                
+                
+                    // **** Start deferred initialize for ESPDrive.rob.lineFollower.gyro.g
+                    {
+                    
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_0 of ESPDrive.rob.lineFollower.gyro.g.
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_0.num_outputs = 0;
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        }
+                        
+                        // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.gyro.g
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_1 of ESPDrive.rob.lineFollower.gyro.g.
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.num_outputs = 3;
+                        // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                        // struct for this reaction.
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                                3, sizeof(trigger_t**),
+                                &espdrive_rob_linefollower_gyro_g_self[0]->base.allocations);
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                                3, sizeof(int),
+                                &espdrive_rob_linefollower_gyro_g_self[0]->base.allocations);
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                                3, sizeof(bool*),
+                                &espdrive_rob_linefollower_gyro_g_self[0]->base.allocations);
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                            {
+                                espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_x.is_present;
+                            }
+                            {
+                                espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_y.is_present;
+                            }
+                            {
+                                espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_z.is_present;
+                            }
+                        }
+                        
+                        // ** End initialization for reaction 1 of ESPDrive.rob.lineFollower.gyro.g
+                    
+                    }
+                    // **** End of deferred initialize for ESPDrive.rob.lineFollower.gyro.g
+                    // **** Start deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator1
+                    {
+                    
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_0 of ESPDrive.rob.lineFollower.gyro.integrator1.
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.num_outputs = 1;
+                        // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                        // struct for this reaction.
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                                1, sizeof(trigger_t**),
+                                &_drive_rob_linefollower_gyro_integrator1_self[0]->base.allocations);
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                                1, sizeof(int),
+                                &_drive_rob_linefollower_gyro_integrator1_self[0]->base.allocations);
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                                1, sizeof(bool*),
+                                &_drive_rob_linefollower_gyro_integrator1_self[0]->base.allocations);
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                            {
+                                _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.output_produced[count++] = &_drive_rob_linefollower_gyro_integrator1_self[0]->_lf_out.is_present;
+                            }
+                        }
+                        
+                        // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.gyro.integrator1
+                    
+                    }
+                    // **** End of deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator1
+                    // **** Start deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator2
+                    {
+                    
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_0 of ESPDrive.rob.lineFollower.gyro.integrator2.
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.num_outputs = 1;
+                        // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                        // struct for this reaction.
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                                1, sizeof(trigger_t**),
+                                &_drive_rob_linefollower_gyro_integrator2_self[0]->base.allocations);
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                                1, sizeof(int),
+                                &_drive_rob_linefollower_gyro_integrator2_self[0]->base.allocations);
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                                1, sizeof(bool*),
+                                &_drive_rob_linefollower_gyro_integrator2_self[0]->base.allocations);
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                            {
+                                _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.output_produced[count++] = &_drive_rob_linefollower_gyro_integrator2_self[0]->_lf_out.is_present;
+                            }
+                        }
+                        
+                        // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.gyro.integrator2
+                    
+                    }
+                    // **** End of deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator2
+                    // **** Start deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator3
+                    {
+                    
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_0 of ESPDrive.rob.lineFollower.gyro.integrator3.
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.num_outputs = 1;
+                        // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                        // struct for this reaction.
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                                1, sizeof(trigger_t**),
+                                &_drive_rob_linefollower_gyro_integrator3_self[0]->base.allocations);
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                                1, sizeof(int),
+                                &_drive_rob_linefollower_gyro_integrator3_self[0]->base.allocations);
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                                1, sizeof(bool*),
+                                &_drive_rob_linefollower_gyro_integrator3_self[0]->base.allocations);
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                            {
+                                _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.output_produced[count++] = &_drive_rob_linefollower_gyro_integrator3_self[0]->_lf_out.is_present;
+                            }
+                        }
+                        
+                        // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.gyro.integrator3
+                    
+                    }
+                    // **** End of deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator3
+                }
+                // **** End of deferred initialize for ESPDrive.rob.lineFollower.gyro
+                // **** Start deferred initialize for ESPDrive.rob.lineFollower.a_to_d
+                {
+                
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_0 of ESPDrive.rob.lineFollower.a_to_d.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.num_outputs = 1;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.triggers = (trigger_t***)_lf_allocate(
+                            1, sizeof(trigger_t**),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.triggered_sizes = (int*)_lf_allocate(
+                            1, sizeof(int),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.output_produced = (bool**)_lf_allocate(
+                            1, sizeof(bool*),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        // Reaction writes to an input of a contained reactor.
+                        {
+                            espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.output_produced[count++] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_e.trigger.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.a_to_d
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_1 of ESPDrive.rob.lineFollower.a_to_d.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.num_outputs = 1;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                            1, sizeof(trigger_t**),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                            1, sizeof(int),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                            1, sizeof(bool*),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_left_distance.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 1 of ESPDrive.rob.lineFollower.a_to_d
+                    // Total number of outputs (single ports and multiport channels)
+                    // produced by reaction_2 of ESPDrive.rob.lineFollower.a_to_d.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.num_outputs = 1;
+                    // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                    // struct for this reaction.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.triggers = (trigger_t***)_lf_allocate(
+                            1, sizeof(trigger_t**),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.triggered_sizes = (int*)_lf_allocate(
+                            1, sizeof(int),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.output_produced = (bool**)_lf_allocate(
+                            1, sizeof(bool*),
+                            &espdrive_rob_linefollower_a_to_d_self[0]->base.allocations);
+                    {
+                        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        {
+                            espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.output_produced[count++] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_right_distance.is_present;
+                        }
+                    }
+                    
+                    // ** End initialization for reaction 2 of ESPDrive.rob.lineFollower.a_to_d
+                
+                    // **** Start deferred initialize for ESPDrive.rob.lineFollower.a_to_d.e
+                    {
+                    
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_0 of ESPDrive.rob.lineFollower.a_to_d.e.
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_0.num_outputs = 0;
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                        }
+                        
+                        // ** End initialization for reaction 0 of ESPDrive.rob.lineFollower.a_to_d.e
+                        // Total number of outputs (single ports and multiport channels)
+                        // produced by reaction_1 of ESPDrive.rob.lineFollower.a_to_d.e.
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.num_outputs = 2;
+                        // Allocate memory for triggers[] and triggered_sizes[] on the reaction_t
+                        // struct for this reaction.
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.triggers = (trigger_t***)_lf_allocate(
+                                2, sizeof(trigger_t**),
+                                &espdrive_rob_linefollower_a_to_d_e_self[0]->base.allocations);
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.triggered_sizes = (int*)_lf_allocate(
+                                2, sizeof(int),
+                                &espdrive_rob_linefollower_a_to_d_e_self[0]->base.allocations);
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.output_produced = (bool**)_lf_allocate(
+                                2, sizeof(bool*),
+                                &espdrive_rob_linefollower_a_to_d_e_self[0]->base.allocations);
+                        {
+                            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                            {
+                                espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_left.is_present;
+                            }
+                            {
+                                espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.output_produced[count++] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_right.is_present;
+                            }
+                        }
+                        
+                        // ** End initialization for reaction 1 of ESPDrive.rob.lineFollower.a_to_d.e
+                    
+                    }
+                    // **** End of deferred initialize for ESPDrive.rob.lineFollower.a_to_d.e
+                }
+                // **** End of deferred initialize for ESPDrive.rob.lineFollower.a_to_d
+            }
+            // **** End of deferred initialize for ESPDrive.rob.lineFollower
+        }
+        // **** End of deferred initialize for ESPDrive.rob
     }
     // **** End of deferred initialize for ESPDrive
     // **** Start non-nested deferred initialize for ESPDrive
@@ -341,16 +1206,6 @@ void _lf_initialize_trigger_objects() {
         int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
         espdrive_main_self[src_runtime]->_lf_d.line0._base.num_destinations = 1;
         espdrive_main_self[src_runtime]->_lf_d.line0._base.source_reactor = (self_base_t*)espdrive_main_self[src_runtime];
-    }
-    // Set number of destination reactors for port d.line1.
-    // Iterate over range ESPDrive.d.line1(0,1)->[ESPDrive.d.line1(0,1)].
-    {
-        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-        espdrive_main_self[src_runtime]->_lf_d.line1._base.num_destinations = 1;
-        espdrive_main_self[src_runtime]->_lf_d.line1._base.source_reactor = (self_base_t*)espdrive_main_self[src_runtime];
     }
     {
         int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
@@ -425,26 +1280,200 @@ void _lf_initialize_trigger_objects() {
             }
         }
     }
+    
+    // **** Start non-nested deferred initialize for ESPDrive.uart
+    
+    // For reference counting, set num_destinations for port ESPDrive.uart.mess.
+    // Iterate over range ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_uart_self[src_runtime]->_lf_mess._base.num_destinations = 1;
+        espdrive_uart_self[src_runtime]->_lf_mess._base.source_reactor = (self_base_t*)espdrive_uart_self[src_runtime];
+    }
     {
         int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
-        // Iterate over range ESPDrive.d.line1(0,1)->[ESPDrive.d.line1(0,1)].
+        // Iterate over range ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)].
         {
             int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
             int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
             int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 2 of ESPDrive triggers 1 downstream reactions
-            // through port ESPDrive.d.line1.
-            espdrive_main_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 2 of ESPDrive, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.d.line1
+            // Reaction 0 of ESPDrive.uart triggers 1 downstream reactions
+            // through port ESPDrive.uart.mess.
+            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of ESPDrive.uart, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.uart.mess
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
-                    &espdrive_main_self[src_runtime]->base.allocations); 
-            espdrive_main_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+                    &espdrive_uart_self[src_runtime]->base.allocations); 
+            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 0;
-        // Iterate over ranges ESPDrive.d.line1(0,1)->[ESPDrive.d.line1(0,1)] and ESPDrive.d.line1(0,1).
+        // Iterate over ranges ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)] and ESPDrive.rob.cmd(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.cmd(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.cmd's trigger struct.
+                espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_self[dst_runtime]->_lf__cmd;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.uart triggers 1 downstream reactions
+            // through port ESPDrive.uart.mess.
+            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.uart, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.uart.mess
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_uart_self[src_runtime]->base.allocations); 
+            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)] and ESPDrive.rob.cmd(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.cmd(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.cmd's trigger struct.
+                espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_self[dst_runtime]->_lf__cmd;
+            }
+        }
+    }
+    
+    // **** End of non-nested deferred initialize for ESPDrive.uart
+    // **** Start non-nested deferred initialize for ESPDrive.d
+    
+    
+    
+    
+    // **** End of non-nested deferred initialize for ESPDrive.d
+    // **** Start non-nested deferred initialize for ESPDrive.rob
+    // Set number of destination reactors for port motors.left_power.
+    // Iterate over range ESPDrive.rob.motors.left_power(0,1)->[ESPDrive.rob.motors.left_power(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_self[src_runtime]->_lf_motors.left_power._base.num_destinations = 1;
+        espdrive_rob_self[src_runtime]->_lf_motors.left_power._base.source_reactor = (self_base_t*)espdrive_rob_self[src_runtime];
+    }
+    // Set number of destination reactors for port motors.right_power.
+    // Iterate over range ESPDrive.rob.motors.right_power(0,1)->[ESPDrive.rob.motors.right_power(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_self[src_runtime]->_lf_motors.right_power._base.num_destinations = 1;
+        espdrive_rob_self[src_runtime]->_lf_motors.right_power._base.source_reactor = (self_base_t*)espdrive_rob_self[src_runtime];
+    }
+    // Set number of destination reactors for port lineFollower.avoidReduceSpeed.
+    // Iterate over range ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)->[ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_self[src_runtime]->_lf_lineFollower.avoidReduceSpeed._base.num_destinations = 1;
+        espdrive_rob_self[src_runtime]->_lf_lineFollower.avoidReduceSpeed._base.source_reactor = (self_base_t*)espdrive_rob_self[src_runtime];
+    }
+    // Set number of destination reactors for port lineFollower.avoidGoAround.
+    // Iterate over range ESPDrive.rob.lineFollower.avoidGoAround(0,1)->[ESPDrive.rob.lineFollower.avoidGoAround(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_self[src_runtime]->_lf_lineFollower.avoidGoAround._base.num_destinations = 1;
+        espdrive_rob_self[src_runtime]->_lf_lineFollower.avoidGoAround._base.source_reactor = (self_base_t*)espdrive_rob_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port ESPDrive.rob.notify.
+    // Iterate over range ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_self[src_runtime]->_lf_notify._base.num_destinations = 1;
+        espdrive_rob_self[src_runtime]->_lf_notify._base.source_reactor = (self_base_t*)espdrive_rob_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port ESPDrive.rob.debug.
+    // Iterate over range ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_self[src_runtime]->_lf_debug._base.num_destinations = 1;
+        espdrive_rob_self[src_runtime]->_lf_debug._base.source_reactor = (self_base_t*)espdrive_rob_self[src_runtime];
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.notify.
+            espdrive_rob_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.notify
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.debug.
+            espdrive_rob_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.debug
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)] and ESPDrive.d.line1(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -459,94 +1488,943 @@ void _lf_initialize_trigger_objects() {
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
                 // Point to destination port ESPDrive.d.line1's trigger struct.
-                espdrive_main_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_d_self[dst_runtime]->_lf__line1;
+                espdrive_rob_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_d_self[dst_runtime]->_lf__line1;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)] and ESPDrive.d.line2(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.d.line2(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.d.line2's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_d_self[dst_runtime]->_lf__line2;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.notify.
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.notify
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.debug.
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.debug
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.motors.left_power(0,1)->[ESPDrive.rob.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.motors.left_power.
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.motors.right_power(0,1)->[ESPDrive.rob.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.motors.right_power.
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)->[ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.avoidReduceSpeed.
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.avoidReduceSpeed
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.avoidGoAround(0,1)->[ESPDrive.rob.lineFollower.avoidGoAround(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.avoidGoAround.
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.avoidGoAround
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_self[src_runtime]->base.allocations); 
+            espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)] and ESPDrive.d.line1(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.d.line1(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.d.line1's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_d_self[dst_runtime]->_lf__line1;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)] and ESPDrive.d.line2(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.d.line2(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.d.line2's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_d_self[dst_runtime]->_lf__line2;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 2;
+        // Iterate over ranges ESPDrive.rob.motors.left_power(0,1)->[ESPDrive.rob.motors.left_power(0,1)] and ESPDrive.rob.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.motors.left_power's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 3;
+        // Iterate over ranges ESPDrive.rob.motors.right_power(0,1)->[ESPDrive.rob.motors.right_power(0,1)] and ESPDrive.rob.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.motors.right_power's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 4;
+        // Iterate over ranges ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)->[ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)] and ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.avoidReduceSpeed's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_self[dst_runtime]->_lf__avoidReduceSpeed;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 5;
+        // Iterate over ranges ESPDrive.rob.lineFollower.avoidGoAround(0,1)->[ESPDrive.rob.lineFollower.avoidGoAround(0,1)] and ESPDrive.rob.lineFollower.avoidGoAround(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.avoidGoAround(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.avoidGoAround's trigger struct.
+                espdrive_rob_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_self[dst_runtime]->_lf__avoidGoAround;
             }
         }
     }
     
-    // **** Start non-nested deferred initialize for ESPDrive.uart
-    // Set number of destination reactors for port motors.left_power.
-    // Iterate over range ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)].
+    // **** Start non-nested deferred initialize for ESPDrive.rob.motors
+    
+    
+    
+    
+    // **** End of non-nested deferred initialize for ESPDrive.rob.motors
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower
+    // Set number of destination reactors for port gyro.trigger.
+    // Iterate over range ESPDrive.rob.lineFollower.gyro.trigger(0,1)->[ESPDrive.rob.lineFollower.gyro.g.trigger(0,1)].
     {
         int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
         int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
         int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
         int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-        espdrive_uart_self[src_runtime]->_lf_motors.left_power._base.num_destinations = 1;
-        espdrive_uart_self[src_runtime]->_lf_motors.left_power._base.source_reactor = (self_base_t*)espdrive_uart_self[src_runtime];
+        espdrive_rob_linefollower_self[src_runtime]->_lf_gyro.trigger._base.num_destinations = 1;
+        espdrive_rob_linefollower_self[src_runtime]->_lf_gyro.trigger._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[src_runtime];
+    }
+    // Set number of destination reactors for port motors.left_power.
+    // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_self[src_runtime]->_lf_motors.left_power._base.num_destinations = 1;
+        espdrive_rob_linefollower_self[src_runtime]->_lf_motors.left_power._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[src_runtime];
     }
     // Set number of destination reactors for port motors.right_power.
-    // Iterate over range ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)].
+    // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
     {
         int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
         int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
         int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
         int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-        espdrive_uart_self[src_runtime]->_lf_motors.right_power._base.num_destinations = 1;
-        espdrive_uart_self[src_runtime]->_lf_motors.right_power._base.source_reactor = (self_base_t*)espdrive_uart_self[src_runtime];
+        espdrive_rob_linefollower_self[src_runtime]->_lf_motors.right_power._base.num_destinations = 1;
+        espdrive_rob_linefollower_self[src_runtime]->_lf_motors.right_power._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[src_runtime];
     }
-    // For reference counting, set num_destinations for port ESPDrive.uart.mess.
-    // Iterate over range ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)].
+    espdrive_rob_linefollower_self[0]->_lf_notify1._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[0];
+    espdrive_rob_linefollower_self[0]->_lf_notify2._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[0];
+    espdrive_rob_linefollower_self[0]->_lf_notify3._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[0];
+    espdrive_rob_linefollower_self[0]->_lf_notify4._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.trigger(0,1)->[ESPDrive.rob.lineFollower.gyro.g.trigger(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.gyro.trigger.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.gyro.trigger
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.gyro.trigger(0,1)->[ESPDrive.rob.lineFollower.gyro.g.trigger(0,1)] and ESPDrive.rob.lineFollower.gyro.g.trigger(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.gyro.g.trigger(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.gyro.g.trigger's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_gyro_g_self[dst_runtime]->_lf__trigger;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 2 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_2.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 2 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_2.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 3 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_3.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 3 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_3.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 4 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_4.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 4 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 4 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_4.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 4 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_4.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 6 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_6.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 6 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 6 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_6.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 6 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_6.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 7 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_7.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 7 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_7.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 7 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_7.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 7 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_7.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_7.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_7.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 8 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_8.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 8 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 8 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_8.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 8 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_8.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 9 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.left_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_9.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 9 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.left_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_9.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 9 of ESPDrive.rob.lineFollower triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.motors.right_power.
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_9.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 9 of ESPDrive.rob.lineFollower, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.motors.right_power
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_9.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.left_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_9.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__left_power;
+            }
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 1;
+        // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.motors.right_power's trigger struct.
+                espdrive_rob_linefollower_self[src_runtime]->_lf__reaction_9.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_motors_self[dst_runtime]->_lf__right_power;
+            }
+        }
+    }
+    
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.motors
+    
+    
+    
+    
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.motors
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro
+    
+    espdrive_rob_linefollower_gyro_self[0]->_lf_x._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_gyro_self[0];
+    espdrive_rob_linefollower_gyro_self[0]->_lf_y._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_gyro_self[0];
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.gyro.z.
+    // Iterate over range ESPDrive.rob.lineFollower.gyro.z(0,1)->[ESPDrive.rob.lineFollower.gyro.z(0,1)].
     {
         int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
         int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
         int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
         int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-        espdrive_uart_self[src_runtime]->_lf_mess._base.num_destinations = 1;
-        espdrive_uart_self[src_runtime]->_lf_mess._base.source_reactor = (self_base_t*)espdrive_uart_self[src_runtime];
+        espdrive_rob_linefollower_gyro_self[src_runtime]->_lf_z._base.num_destinations = 1;
+        espdrive_rob_linefollower_gyro_self[src_runtime]->_lf_z._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_gyro_self[src_runtime];
+    }
+    
+    
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.g
+    
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.gyro.g.x.
+    // Iterate over range ESPDrive.rob.lineFollower.gyro.g.x(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_x._base.num_destinations = 1;
+        espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_x._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_gyro_g_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.gyro.g.y.
+    // Iterate over range ESPDrive.rob.lineFollower.gyro.g.y(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_y._base.num_destinations = 1;
+        espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_y._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_gyro_g_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.gyro.g.z.
+    // Iterate over range ESPDrive.rob.lineFollower.gyro.g.z(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_z._base.num_destinations = 1;
+        espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_z._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_gyro_g_self[src_runtime];
     }
     {
         int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
-        // Iterate over range ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)].
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.g.x(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1)].
         {
             int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
             int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
             int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 0 of ESPDrive.uart triggers 1 downstream reactions
-            // through port ESPDrive.uart.mess.
-            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 0 of ESPDrive.uart, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.uart.mess
+            // Reaction 1 of ESPDrive.rob.lineFollower.gyro.g triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.gyro.g.x.
+            espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob.lineFollower.gyro.g, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.gyro.g.x
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
-                    &espdrive_uart_self[src_runtime]->base.allocations); 
-            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+                    &espdrive_rob_linefollower_gyro_g_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
         }
-        // Iterate over range ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)].
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.g.y(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1)].
         {
             int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
             int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
             int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 0 of ESPDrive.uart triggers 1 downstream reactions
-            // through port ESPDrive.uart.motors.left_power.
-            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 0 of ESPDrive.uart, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.uart.motors.left_power
+            // Reaction 1 of ESPDrive.rob.lineFollower.gyro.g triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.gyro.g.y.
+            espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob.lineFollower.gyro.g, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.gyro.g.y
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
-                    &espdrive_uart_self[src_runtime]->base.allocations); 
-            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+                    &espdrive_rob_linefollower_gyro_g_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
         }
-        // Iterate over range ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)].
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.g.z(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1)].
         {
             int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
             int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
             int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 0 of ESPDrive.uart triggers 1 downstream reactions
-            // through port ESPDrive.uart.motors.right_power.
-            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 0 of ESPDrive.uart, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.uart.motors.right_power
+            // Reaction 1 of ESPDrive.rob.lineFollower.gyro.g triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.gyro.g.z.
+            espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob.lineFollower.gyro.g, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.gyro.g.z
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
-                    &espdrive_uart_self[src_runtime]->base.allocations); 
-            espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+                    &espdrive_rob_linefollower_gyro_g_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 0;
-        // Iterate over ranges ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)] and ESPDrive.uart.mess(0,1).
+        // Iterate over ranges ESPDrive.rob.lineFollower.gyro.g.x(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1)] and ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -554,19 +2432,18 @@ void _lf_initialize_trigger_objects() {
             SUPPRESS_UNUSED_WARNING(src_channel);
             int src_bank = 0; // Bank index.
             SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range ESPDrive.uart.mess(0,1).
+            // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1).
             {
                 int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
                 int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Port ESPDrive.uart.mess has reactions in its parent's parent.
-                // Point to the trigger struct for those reactions.
-                espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_main_self[dst_runtime]->_lf_uart.mess_trigger;
+                // Point to destination port ESPDrive.rob.lineFollower.gyro.integrator1.in's trigger struct.
+                espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &_drive_rob_linefollower_gyro_integrator1_self[dst_runtime]->_lf__in;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 1;
-        // Iterate over ranges ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)] and ESPDrive.uart.motors.left_power(0,1).
+        // Iterate over ranges ESPDrive.rob.lineFollower.gyro.g.y(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1)] and ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -574,18 +2451,18 @@ void _lf_initialize_trigger_objects() {
             SUPPRESS_UNUSED_WARNING(src_channel);
             int src_bank = 0; // Bank index.
             SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range ESPDrive.uart.motors.left_power(0,1).
+            // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1).
             {
                 int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
                 int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Point to destination port ESPDrive.uart.motors.left_power's trigger struct.
-                espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_uart_motors_self[dst_runtime]->_lf__left_power;
+                // Point to destination port ESPDrive.rob.lineFollower.gyro.integrator2.in's trigger struct.
+                espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &_drive_rob_linefollower_gyro_integrator2_self[dst_runtime]->_lf__in;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 2;
-        // Iterate over ranges ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)] and ESPDrive.uart.motors.right_power(0,1).
+        // Iterate over ranges ESPDrive.rob.lineFollower.gyro.g.z(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1)] and ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -593,69 +2470,169 @@ void _lf_initialize_trigger_objects() {
             SUPPRESS_UNUSED_WARNING(src_channel);
             int src_bank = 0; // Bank index.
             SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range ESPDrive.uart.motors.right_power(0,1).
+            // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1).
             {
                 int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
                 int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Point to destination port ESPDrive.uart.motors.right_power's trigger struct.
-                espdrive_uart_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_uart_motors_self[dst_runtime]->_lf__right_power;
+                // Point to destination port ESPDrive.rob.lineFollower.gyro.integrator3.in's trigger struct.
+                espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &_drive_rob_linefollower_gyro_integrator3_self[dst_runtime]->_lf__in;
+            }
+        }
+    }
+    
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.g
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator1
+    
+    _drive_rob_linefollower_gyro_integrator1_self[0]->_lf_out._base.source_reactor = (self_base_t*)_drive_rob_linefollower_gyro_integrator1_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator1
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator2
+    
+    _drive_rob_linefollower_gyro_integrator2_self[0]->_lf_out._base.source_reactor = (self_base_t*)_drive_rob_linefollower_gyro_integrator2_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator2
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator3
+    
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.gyro.integrator3.out.
+    // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator3.out(0,1)->[ESPDrive.rob.lineFollower.gyro.z(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        _drive_rob_linefollower_gyro_integrator3_self[src_runtime]->_lf_out._base.num_destinations = 1;
+        _drive_rob_linefollower_gyro_integrator3_self[src_runtime]->_lf_out._base.source_reactor = (self_base_t*)_drive_rob_linefollower_gyro_integrator3_self[src_runtime];
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator3.out(0,1)->[ESPDrive.rob.lineFollower.gyro.z(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of ESPDrive.rob.lineFollower.gyro.integrator3 triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.gyro.integrator3.out.
+            _drive_rob_linefollower_gyro_integrator3_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of ESPDrive.rob.lineFollower.gyro.integrator3, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.gyro.integrator3.out
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &_drive_rob_linefollower_gyro_integrator3_self[src_runtime]->base.allocations); 
+            _drive_rob_linefollower_gyro_integrator3_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.gyro.integrator3.out(0,1)->[ESPDrive.rob.lineFollower.gyro.z(0,1)] and ESPDrive.rob.lineFollower.gyro.z(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.gyro.z(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Port ESPDrive.rob.lineFollower.gyro.integrator3.out has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                _drive_rob_linefollower_gyro_integrator3_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_self[dst_runtime]->_lf_gyro.z_trigger;
+            }
+        }
+    }
+    
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro.integrator3
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.gyro
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.a_to_d
+    // Set number of destination reactors for port e.trigger.
+    // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf_e.trigger._base.num_destinations = 1;
+        espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf_e.trigger._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_a_to_d_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.a_to_d.left_distance.
+    // Iterate over range ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)->[ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf_left_distance._base.num_destinations = 1;
+        espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf_left_distance._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_a_to_d_self[src_runtime];
+    }
+    espdrive_rob_linefollower_a_to_d_self[0]->_lf_right_distance._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_a_to_d_self[0];
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 0 of ESPDrive.rob.lineFollower.a_to_d triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.a_to_d.e.trigger.
+            espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf__reaction_0.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 0 of ESPDrive.rob.lineFollower.a_to_d, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.a_to_d.e.trigger
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_a_to_d_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)] and ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Point to destination port ESPDrive.rob.lineFollower.a_to_d.e.trigger's trigger struct.
+                espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf__reaction_0.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_a_to_d_e_self[dst_runtime]->_lf__trigger;
             }
         }
     }
     {
         int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
-        // Iterate over range ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)].
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)->[ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)].
         {
             int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
             int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
             int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of ESPDrive.uart triggers 1 downstream reactions
-            // through port ESPDrive.uart.mess.
-            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of ESPDrive.uart, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.uart.mess
+            // Reaction 1 of ESPDrive.rob.lineFollower.a_to_d triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.a_to_d.left_distance.
+            espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob.lineFollower.a_to_d, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.a_to_d.left_distance
             trigger_t** trigger_array = (trigger_t**)_lf_allocate(
                     1, sizeof(trigger_t*),
-                    &espdrive_uart_self[src_runtime]->base.allocations); 
-            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of ESPDrive.uart triggers 1 downstream reactions
-            // through port ESPDrive.uart.motors.left_power.
-            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of ESPDrive.uart, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.uart.motors.left_power
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &espdrive_uart_self[src_runtime]->base.allocations); 
-            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
-        }
-        // Iterate over range ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)].
-        {
-            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
-            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
-            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            // Reaction 1 of ESPDrive.uart triggers 1 downstream reactions
-            // through port ESPDrive.uart.motors.right_power.
-            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
-            // For reaction 1 of ESPDrive.uart, allocate an
-            // array of trigger pointers for downstream reactions through port ESPDrive.uart.motors.right_power
-            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
-                    1, sizeof(trigger_t*),
-                    &espdrive_uart_self[src_runtime]->base.allocations); 
-            espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+                    &espdrive_rob_linefollower_a_to_d_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 0;
-        // Iterate over ranges ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)] and ESPDrive.uart.mess(0,1).
+        // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)->[ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)] and ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -663,19 +2640,100 @@ void _lf_initialize_trigger_objects() {
             SUPPRESS_UNUSED_WARNING(src_channel);
             int src_bank = 0; // Bank index.
             SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range ESPDrive.uart.mess(0,1).
+            // Iterate over range ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1).
             {
                 int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
                 int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Port ESPDrive.uart.mess has reactions in its parent's parent.
+                // Port ESPDrive.rob.lineFollower.a_to_d.left_distance has reactions in its parent's parent.
                 // Point to the trigger struct for those reactions.
-                espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_main_self[dst_runtime]->_lf_uart.mess_trigger;
+                espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_self[dst_runtime]->_lf_a_to_d.left_distance_trigger;
+            }
+        }
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+    }
+    
+    // **** Start non-nested deferred initialize for ESPDrive.rob.lineFollower.a_to_d.e
+    
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.a_to_d.e.right.
+    // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf_right._base.num_destinations = 1;
+        espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf_right._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_a_to_d_e_self[src_runtime];
+    }
+    // For reference counting, set num_destinations for port ESPDrive.rob.lineFollower.a_to_d.e.left.
+    // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)].
+    {
+        int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+        int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+        int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+        int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+        espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf_left._base.num_destinations = 1;
+        espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf_left._base.source_reactor = (self_base_t*)espdrive_rob_linefollower_a_to_d_e_self[src_runtime];
+    }
+    {
+        int triggers_index[1] = { 0 }; // Number of bank members with the reaction.
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob.lineFollower.a_to_d.e triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.a_to_d.e.left.
+            espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob.lineFollower.a_to_d.e, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.a_to_d.e.left
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)].
+        {
+            int src_runtime = 0; SUPPRESS_UNUSED_WARNING(src_runtime); // Runtime index.
+            int src_channel = 0; SUPPRESS_UNUSED_WARNING(src_channel); // Channel index.
+            int src_bank = 0; SUPPRESS_UNUSED_WARNING(src_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            // Reaction 1 of ESPDrive.rob.lineFollower.a_to_d.e triggers 1 downstream reactions
+            // through port ESPDrive.rob.lineFollower.a_to_d.e.right.
+            espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggered_sizes[triggers_index[src_runtime]] = 1;
+            // For reaction 1 of ESPDrive.rob.lineFollower.a_to_d.e, allocate an
+            // array of trigger pointers for downstream reactions through port ESPDrive.rob.lineFollower.a_to_d.e.right
+            trigger_t** trigger_array = (trigger_t**)_lf_allocate(
+                    1, sizeof(trigger_t*),
+                    &espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->base.allocations); 
+            espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime]++] = trigger_array;
+        }
+        for (int i = 0; i < 1; i++) triggers_index[i] = 0;
+        // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)] and ESPDrive.rob.lineFollower.a_to_d.e.left(0,1).
+        {
+            int src_runtime = 0; // Runtime index.
+            SUPPRESS_UNUSED_WARNING(src_runtime);
+            int src_channel = 0; // Channel index.
+            SUPPRESS_UNUSED_WARNING(src_channel);
+            int src_bank = 0; // Bank index.
+            SUPPRESS_UNUSED_WARNING(src_bank);
+            // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.left(0,1).
+            {
+                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+                // Port ESPDrive.rob.lineFollower.a_to_d.e.left has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_a_to_d_self[dst_runtime]->_lf_e.left_trigger;
             }
         }
         for (int i = 0; i < 1; i++) triggers_index[i] = 1;
-        // Iterate over ranges ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)] and ESPDrive.uart.motors.left_power(0,1).
+        // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)] and ESPDrive.rob.lineFollower.a_to_d.e.right(0,1).
         {
             int src_runtime = 0; // Runtime index.
             SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -683,50 +2741,23 @@ void _lf_initialize_trigger_objects() {
             SUPPRESS_UNUSED_WARNING(src_channel);
             int src_bank = 0; // Bank index.
             SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range ESPDrive.uart.motors.left_power(0,1).
+            // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.right(0,1).
             {
                 int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
                 int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
                 int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
                 int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Point to destination port ESPDrive.uart.motors.left_power's trigger struct.
-                espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_uart_motors_self[dst_runtime]->_lf__left_power;
-            }
-        }
-        for (int i = 0; i < 1; i++) triggers_index[i] = 2;
-        // Iterate over ranges ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)] and ESPDrive.uart.motors.right_power(0,1).
-        {
-            int src_runtime = 0; // Runtime index.
-            SUPPRESS_UNUSED_WARNING(src_runtime);
-            int src_channel = 0; // Channel index.
-            SUPPRESS_UNUSED_WARNING(src_channel);
-            int src_bank = 0; // Bank index.
-            SUPPRESS_UNUSED_WARNING(src_bank);
-            // Iterate over range ESPDrive.uart.motors.right_power(0,1).
-            {
-                int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
-                int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
-                int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
-                int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-                // Point to destination port ESPDrive.uart.motors.right_power's trigger struct.
-                espdrive_uart_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_uart_motors_self[dst_runtime]->_lf__right_power;
+                // Port ESPDrive.rob.lineFollower.a_to_d.e.right has reactions in its parent's parent.
+                // Point to the trigger struct for those reactions.
+                espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf__reaction_1.triggers[triggers_index[src_runtime] + src_channel][0] = &espdrive_rob_linefollower_a_to_d_self[dst_runtime]->_lf_e.right_trigger;
             }
         }
     }
     
-    // **** Start non-nested deferred initialize for ESPDrive.uart.motors
-    
-    
-    
-    
-    // **** End of non-nested deferred initialize for ESPDrive.uart.motors
-    // **** End of non-nested deferred initialize for ESPDrive.uart
-    // **** Start non-nested deferred initialize for ESPDrive.d
-    
-    
-    
-    
-    // **** End of non-nested deferred initialize for ESPDrive.d
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.a_to_d.e
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower.a_to_d
+    // **** End of non-nested deferred initialize for ESPDrive.rob.lineFollower
+    // **** End of non-nested deferred initialize for ESPDrive.rob
     // **** End of non-nested deferred initialize for ESPDrive
     // Connect inputs and outputs for reactor ESPDrive.
     // Connect inputs and outputs for reactor ESPDrive.uart.
@@ -748,8 +2779,8 @@ void _lf_initialize_trigger_objects() {
             espdrive_uart_self[dst_runtime]->_lf_rec = (_uartrec_rec_t*)&espdrive_main_self[src_runtime]->_lf_uart.rec;
         }
     }
-    // Connect ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)] to port ESPDrive.uart.mess(0,1)
-    // Iterate over ranges ESPDrive.uart.mess(0,1)->[ESPDrive.uart.mess(0,1)] and ESPDrive.uart.mess(0,1).
+    // Connect ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)] to port ESPDrive.rob.cmd(0,1)
+    // Iterate over ranges ESPDrive.uart.mess(0,1)->[ESPDrive.rob.cmd(0,1)] and ESPDrive.rob.cmd(0,1).
     {
         int src_runtime = 0; // Runtime index.
         SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -757,50 +2788,13 @@ void _lf_initialize_trigger_objects() {
         SUPPRESS_UNUSED_WARNING(src_channel);
         int src_bank = 0; // Bank index.
         SUPPRESS_UNUSED_WARNING(src_bank);
-        // Iterate over range ESPDrive.uart.mess(0,1).
+        // Iterate over range ESPDrive.rob.cmd(0,1).
         {
             int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
             int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
             int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            espdrive_main_self[dst_runtime]->_lf_uart.mess = (_uartrec_mess_t*)&espdrive_uart_self[src_runtime]->_lf_mess;
-        }
-    }
-    // Connect inputs and outputs for reactor ESPDrive.uart.motors.
-    // Connect ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)] to port ESPDrive.uart.motors.left_power(0,1)
-    // Iterate over ranges ESPDrive.uart.motors.left_power(0,1)->[ESPDrive.uart.motors.left_power(0,1)] and ESPDrive.uart.motors.left_power(0,1).
-    {
-        int src_runtime = 0; // Runtime index.
-        SUPPRESS_UNUSED_WARNING(src_runtime);
-        int src_channel = 0; // Channel index.
-        SUPPRESS_UNUSED_WARNING(src_channel);
-        int src_bank = 0; // Bank index.
-        SUPPRESS_UNUSED_WARNING(src_bank);
-        // Iterate over range ESPDrive.uart.motors.left_power(0,1).
-        {
-            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
-            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
-            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            espdrive_uart_motors_self[dst_runtime]->_lf_left_power = (_motors_left_power_t*)&espdrive_uart_self[src_runtime]->_lf_motors.left_power;
-        }
-    }
-    // Connect ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)] to port ESPDrive.uart.motors.right_power(0,1)
-    // Iterate over ranges ESPDrive.uart.motors.right_power(0,1)->[ESPDrive.uart.motors.right_power(0,1)] and ESPDrive.uart.motors.right_power(0,1).
-    {
-        int src_runtime = 0; // Runtime index.
-        SUPPRESS_UNUSED_WARNING(src_runtime);
-        int src_channel = 0; // Channel index.
-        SUPPRESS_UNUSED_WARNING(src_channel);
-        int src_bank = 0; // Bank index.
-        SUPPRESS_UNUSED_WARNING(src_bank);
-        // Iterate over range ESPDrive.uart.motors.right_power(0,1).
-        {
-            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
-            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
-            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
-            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            espdrive_uart_motors_self[dst_runtime]->_lf_right_power = (_motors_right_power_t*)&espdrive_uart_self[src_runtime]->_lf_motors.right_power;
+            espdrive_rob_self[dst_runtime]->_lf_cmd = (_robot_cmd_t*)&espdrive_uart_self[src_runtime]->_lf_mess;
         }
     }
     // Connect inputs and outputs for reactor ESPDrive.d.
@@ -822,8 +2816,9 @@ void _lf_initialize_trigger_objects() {
             espdrive_d_self[dst_runtime]->_lf_line0 = (_display_line0_t*)&espdrive_main_self[src_runtime]->_lf_d.line0;
         }
     }
-    // Connect ESPDrive.d.line1(0,1)->[ESPDrive.d.line1(0,1)] to port ESPDrive.d.line1(0,1)
-    // Iterate over ranges ESPDrive.d.line1(0,1)->[ESPDrive.d.line1(0,1)] and ESPDrive.d.line1(0,1).
+    // Connect inputs and outputs for reactor ESPDrive.rob.
+    // Connect ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)] to port ESPDrive.d.line1(0,1)
+    // Iterate over ranges ESPDrive.rob.notify(0,1)->[ESPDrive.d.line1(0,1)] and ESPDrive.d.line1(0,1).
     {
         int src_runtime = 0; // Runtime index.
         SUPPRESS_UNUSED_WARNING(src_runtime);
@@ -837,49 +2832,590 @@ void _lf_initialize_trigger_objects() {
             int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
             int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
             int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
-            espdrive_d_self[dst_runtime]->_lf_line1 = (_display_line1_t*)&espdrive_main_self[src_runtime]->_lf_d.line1;
+            espdrive_d_self[dst_runtime]->_lf_line1 = (_display_line1_t*)&espdrive_rob_self[src_runtime]->_lf_notify;
         }
+    }
+    // Connect ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)] to port ESPDrive.d.line2(0,1)
+    // Iterate over ranges ESPDrive.rob.debug(0,1)->[ESPDrive.d.line2(0,1)] and ESPDrive.d.line2(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.d.line2(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_d_self[dst_runtime]->_lf_line2 = (_display_line2_t*)&espdrive_rob_self[src_runtime]->_lf_debug;
+        }
+    }
+    // Connect inputs and outputs for reactor ESPDrive.rob.motors.
+    // Connect ESPDrive.rob.motors.left_power(0,1)->[ESPDrive.rob.motors.left_power(0,1)] to port ESPDrive.rob.motors.left_power(0,1)
+    // Iterate over ranges ESPDrive.rob.motors.left_power(0,1)->[ESPDrive.rob.motors.left_power(0,1)] and ESPDrive.rob.motors.left_power(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.motors.left_power(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_motors_self[dst_runtime]->_lf_left_power = (_motors_left_power_t*)&espdrive_rob_self[src_runtime]->_lf_motors.left_power;
+        }
+    }
+    // Connect ESPDrive.rob.motors.right_power(0,1)->[ESPDrive.rob.motors.right_power(0,1)] to port ESPDrive.rob.motors.right_power(0,1)
+    // Iterate over ranges ESPDrive.rob.motors.right_power(0,1)->[ESPDrive.rob.motors.right_power(0,1)] and ESPDrive.rob.motors.right_power(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.motors.right_power(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_motors_self[dst_runtime]->_lf_right_power = (_motors_right_power_t*)&espdrive_rob_self[src_runtime]->_lf_motors.right_power;
+        }
+    }
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.
+    // Connect ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)->[ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)] to port ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)->[ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1)] and ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.avoidReduceSpeed(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_self[dst_runtime]->_lf_avoidReduceSpeed = (_robotlinefollower_avoidReduceSpeed_t*)&espdrive_rob_self[src_runtime]->_lf_lineFollower.avoidReduceSpeed;
+        }
+    }
+    // Connect ESPDrive.rob.lineFollower.avoidGoAround(0,1)->[ESPDrive.rob.lineFollower.avoidGoAround(0,1)] to port ESPDrive.rob.lineFollower.avoidGoAround(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.avoidGoAround(0,1)->[ESPDrive.rob.lineFollower.avoidGoAround(0,1)] and ESPDrive.rob.lineFollower.avoidGoAround(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.avoidGoAround(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_self[dst_runtime]->_lf_avoidGoAround = (_robotlinefollower_avoidGoAround_t*)&espdrive_rob_self[src_runtime]->_lf_lineFollower.avoidGoAround;
+        }
+    }
+    
+    
+    
+    
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.motors.
+    // Connect ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] to port ESPDrive.rob.lineFollower.motors.left_power(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.motors.left_power(0,1)->[ESPDrive.rob.lineFollower.motors.left_power(0,1)] and ESPDrive.rob.lineFollower.motors.left_power(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.motors.left_power(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_motors_self[dst_runtime]->_lf_left_power = (_motors_left_power_t*)&espdrive_rob_linefollower_self[src_runtime]->_lf_motors.left_power;
+        }
+    }
+    // Connect ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] to port ESPDrive.rob.lineFollower.motors.right_power(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.motors.right_power(0,1)->[ESPDrive.rob.lineFollower.motors.right_power(0,1)] and ESPDrive.rob.lineFollower.motors.right_power(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.motors.right_power(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_motors_self[dst_runtime]->_lf_right_power = (_motors_right_power_t*)&espdrive_rob_linefollower_self[src_runtime]->_lf_motors.right_power;
+        }
+    }
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.gyro.
+    // Connect ESPDrive.rob.lineFollower.gyro.trigger(0,1)->[ESPDrive.rob.lineFollower.gyro.g.trigger(0,1)] to port ESPDrive.rob.lineFollower.gyro.g.trigger(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.gyro.trigger(0,1)->[ESPDrive.rob.lineFollower.gyro.g.trigger(0,1)] and ESPDrive.rob.lineFollower.gyro.g.trigger(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.g.trigger(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_gyro_g_self[dst_runtime]->_lf_trigger = (_gyro_trigger_t*)&espdrive_rob_linefollower_self[src_runtime]->_lf_gyro.trigger;
+        }
+    }
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.gyro.g.
+    // Connect ESPDrive.rob.lineFollower.gyro.g.x(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1)] to port ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.gyro.g.x(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1)] and ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator1.in(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            _drive_rob_linefollower_gyro_integrator1_self[dst_runtime]->_lf_in = (_trapezoidalintegrator_in_t*)&espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_x;
+        }
+    }
+    // Connect ESPDrive.rob.lineFollower.gyro.g.y(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1)] to port ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.gyro.g.y(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1)] and ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator2.in(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            _drive_rob_linefollower_gyro_integrator2_self[dst_runtime]->_lf_in = (_trapezoidalintegrator_in_t*)&espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_y;
+        }
+    }
+    // Connect ESPDrive.rob.lineFollower.gyro.g.z(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1)] to port ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.gyro.g.z(0,1)->[ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1)] and ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.integrator3.in(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            _drive_rob_linefollower_gyro_integrator3_self[dst_runtime]->_lf_in = (_trapezoidalintegrator_in_t*)&espdrive_rob_linefollower_gyro_g_self[src_runtime]->_lf_z;
+        }
+    }
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.gyro.integrator1.
+    
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.gyro.integrator2.
+    
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.gyro.integrator3.
+    // Connect ESPDrive.rob.lineFollower.gyro.integrator3.out(0,1)->[ESPDrive.rob.lineFollower.gyro.z(0,1)] to port ESPDrive.rob.lineFollower.gyro.z(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.gyro.integrator3.out(0,1)->[ESPDrive.rob.lineFollower.gyro.z(0,1)] and ESPDrive.rob.lineFollower.gyro.z(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.gyro.z(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_self[dst_runtime]->_lf_gyro.z = (_gyroangle_z_t*)&_drive_rob_linefollower_gyro_integrator3_self[src_runtime]->_lf_out;
+        }
+    }
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.a_to_d.
+    // Connect ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)->[ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)] to port ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)->[ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1)] and ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.left_distance(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_self[dst_runtime]->_lf_a_to_d.left_distance = (_angletodistance_left_distance_t*)&espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf_left_distance;
+        }
+    }
+    
+    // Connect inputs and outputs for reactor ESPDrive.rob.lineFollower.a_to_d.e.
+    // Connect ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)] to port ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1)] and ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.trigger(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_a_to_d_e_self[dst_runtime]->_lf_trigger = (_encoders_trigger_t*)&espdrive_rob_linefollower_a_to_d_self[src_runtime]->_lf_e.trigger;
+        }
+    }
+    // Connect ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)] to port ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.right(0,1)] and ESPDrive.rob.lineFollower.a_to_d.e.right(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.right(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_a_to_d_self[dst_runtime]->_lf_e.right = (_encoders_right_t*)&espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf_right;
+        }
+    }
+    // Connect ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)] to port ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)
+    // Iterate over ranges ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)->[ESPDrive.rob.lineFollower.a_to_d.e.left(0,1)] and ESPDrive.rob.lineFollower.a_to_d.e.left(0,1).
+    {
+        int src_runtime = 0; // Runtime index.
+        SUPPRESS_UNUSED_WARNING(src_runtime);
+        int src_channel = 0; // Channel index.
+        SUPPRESS_UNUSED_WARNING(src_channel);
+        int src_bank = 0; // Bank index.
+        SUPPRESS_UNUSED_WARNING(src_bank);
+        // Iterate over range ESPDrive.rob.lineFollower.a_to_d.e.left(0,1).
+        {
+            int dst_runtime = 0; SUPPRESS_UNUSED_WARNING(dst_runtime); // Runtime index.
+            int dst_channel = 0; SUPPRESS_UNUSED_WARNING(dst_channel); // Channel index.
+            int dst_bank = 0; SUPPRESS_UNUSED_WARNING(dst_bank); // Bank index.
+            int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);
+            espdrive_rob_linefollower_a_to_d_self[dst_runtime]->_lf_e.left = (_encoders_left_t*)&espdrive_rob_linefollower_a_to_d_e_self[src_runtime]->_lf_left;
+        }
+    }
+    {
+    }
+    {
     }
     {
         {
         }
-        // Add port ESPDrive.uart.motors.left_power to array of is_present fields.
         {
-            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+            }
             {
                 {
-                    envs[espdrive_main].is_present_fields[0 + count] = &espdrive_uart_self[0]->_lf_motors.left_power.is_present;
+                }
+                {
+                }
+                {
+                }
+                {
+                }
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        // Add port ESPDrive.rob.lineFollower.gyro.g.x to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[0 + count] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_x.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.gyro.g.x to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[0 + count] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_x.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                        // Add port ESPDrive.rob.lineFollower.gyro.g.y to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[0 + count] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_y.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.gyro.g.y to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[0 + count] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_y.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                        // Add port ESPDrive.rob.lineFollower.gyro.g.z to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[0 + count] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_z.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.gyro.g.z to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[0 + count] = &espdrive_rob_linefollower_gyro_g_self[0]->_lf_z.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        // Add port ESPDrive.rob.lineFollower.gyro.integrator1.out to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[3 + count] = &_drive_rob_linefollower_gyro_integrator1_self[0]->_lf_out.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.gyro.integrator1.out to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[3 + count] = &_drive_rob_linefollower_gyro_integrator1_self[0]->_lf_out.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        // Add port ESPDrive.rob.lineFollower.gyro.integrator2.out to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[4 + count] = &_drive_rob_linefollower_gyro_integrator2_self[0]->_lf_out.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.gyro.integrator2.out to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[4 + count] = &_drive_rob_linefollower_gyro_integrator2_self[0]->_lf_out.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        // Add port ESPDrive.rob.lineFollower.gyro.integrator3.out to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[5 + count] = &_drive_rob_linefollower_gyro_integrator3_self[0]->_lf_out.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.gyro.integrator3.out to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[5 + count] = &_drive_rob_linefollower_gyro_integrator3_self[0]->_lf_out.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+            }
+            {
+                {
+                }
+                // Add port ESPDrive.rob.lineFollower.a_to_d.e.trigger to array of is_present fields.
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        {
+                            envs[espdrive_main].is_present_fields[6 + count] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_e.trigger.is_present;
+                            #ifdef FEDERATED_DECENTRALIZED
+                            envs[espdrive_main]._lf_intended_tag_fields[6 + count] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_e.trigger.intended_tag;
+                            #endif // FEDERATED_DECENTRALIZED
+                            count++;
+                        }
+                    }
+                }
+                {
+                    int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                    {
+                        // Add port ESPDrive.rob.lineFollower.a_to_d.e.right to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[7 + count] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_right.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.a_to_d.e.right to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[7 + count] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_right.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                        // Add port ESPDrive.rob.lineFollower.a_to_d.e.left to array of is_present fields.
+                        envs[espdrive_main].is_present_fields[7 + count] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_left.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        // Add port ESPDrive.rob.lineFollower.a_to_d.e.left to array of intended_tag fields.
+                        envs[espdrive_main]._lf_intended_tag_fields[7 + count] = &espdrive_rob_linefollower_a_to_d_e_self[0]->_lf_left.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+            }
+            // Add port ESPDrive.rob.lineFollower.gyro.trigger to array of is_present fields.
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    {
+                        envs[espdrive_main].is_present_fields[9 + count] = &espdrive_rob_linefollower_self[0]->_lf_gyro.trigger.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        envs[espdrive_main]._lf_intended_tag_fields[9 + count] = &espdrive_rob_linefollower_self[0]->_lf_gyro.trigger.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+            }
+            // Add port ESPDrive.rob.lineFollower.motors.left_power to array of is_present fields.
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    {
+                        envs[espdrive_main].is_present_fields[10 + count] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        envs[espdrive_main]._lf_intended_tag_fields[10 + count] = &espdrive_rob_linefollower_self[0]->_lf_motors.left_power.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+            }
+            // Add port ESPDrive.rob.lineFollower.motors.right_power to array of is_present fields.
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    {
+                        envs[espdrive_main].is_present_fields[11 + count] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.is_present;
+                        #ifdef FEDERATED_DECENTRALIZED
+                        envs[espdrive_main]._lf_intended_tag_fields[11 + count] = &espdrive_rob_linefollower_self[0]->_lf_motors.right_power.intended_tag;
+                        #endif // FEDERATED_DECENTRALIZED
+                        count++;
+                    }
+                }
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                }
+            }
+            {
+                int count = 0; SUPPRESS_UNUSED_WARNING(count);
+                {
+                    // Add port ESPDrive.rob.lineFollower.a_to_d.left_distance to array of is_present fields.
+                    envs[espdrive_main].is_present_fields[12 + count] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_left_distance.is_present;
                     #ifdef FEDERATED_DECENTRALIZED
-                    envs[espdrive_main]._lf_intended_tag_fields[0 + count] = &espdrive_uart_self[0]->_lf_motors.left_power.intended_tag;
+                    // Add port ESPDrive.rob.lineFollower.a_to_d.left_distance to array of intended_tag fields.
+                    envs[espdrive_main]._lf_intended_tag_fields[12 + count] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_left_distance.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                    // Add port ESPDrive.rob.lineFollower.a_to_d.right_distance to array of is_present fields.
+                    envs[espdrive_main].is_present_fields[12 + count] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_right_distance.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    // Add port ESPDrive.rob.lineFollower.a_to_d.right_distance to array of intended_tag fields.
+                    envs[espdrive_main]._lf_intended_tag_fields[12 + count] = &espdrive_rob_linefollower_a_to_d_self[0]->_lf_right_distance.intended_tag;
                     #endif // FEDERATED_DECENTRALIZED
                     count++;
                 }
             }
         }
-        // Add port ESPDrive.uart.motors.right_power to array of is_present fields.
+        // Add port ESPDrive.rob.motors.left_power to array of is_present fields.
         {
             int count = 0; SUPPRESS_UNUSED_WARNING(count);
             {
                 {
-                    envs[espdrive_main].is_present_fields[1 + count] = &espdrive_uart_self[0]->_lf_motors.right_power.is_present;
+                    envs[espdrive_main].is_present_fields[14 + count] = &espdrive_rob_self[0]->_lf_motors.left_power.is_present;
                     #ifdef FEDERATED_DECENTRALIZED
-                    envs[espdrive_main]._lf_intended_tag_fields[1 + count] = &espdrive_uart_self[0]->_lf_motors.right_power.intended_tag;
+                    envs[espdrive_main]._lf_intended_tag_fields[14 + count] = &espdrive_rob_self[0]->_lf_motors.left_power.intended_tag;
                     #endif // FEDERATED_DECENTRALIZED
                     count++;
                 }
             }
         }
-    }
-    {
+        // Add port ESPDrive.rob.motors.right_power to array of is_present fields.
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+                {
+                    envs[espdrive_main].is_present_fields[15 + count] = &espdrive_rob_self[0]->_lf_motors.right_power.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    envs[espdrive_main]._lf_intended_tag_fields[15 + count] = &espdrive_rob_self[0]->_lf_motors.right_power.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+        }
+        // Add port ESPDrive.rob.lineFollower.avoidReduceSpeed to array of is_present fields.
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+                {
+                    envs[espdrive_main].is_present_fields[16 + count] = &espdrive_rob_self[0]->_lf_lineFollower.avoidReduceSpeed.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    envs[espdrive_main]._lf_intended_tag_fields[16 + count] = &espdrive_rob_self[0]->_lf_lineFollower.avoidReduceSpeed.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+        }
+        // Add port ESPDrive.rob.lineFollower.avoidGoAround to array of is_present fields.
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+                {
+                    envs[espdrive_main].is_present_fields[17 + count] = &espdrive_rob_self[0]->_lf_lineFollower.avoidGoAround.is_present;
+                    #ifdef FEDERATED_DECENTRALIZED
+                    envs[espdrive_main]._lf_intended_tag_fields[17 + count] = &espdrive_rob_self[0]->_lf_lineFollower.avoidGoAround.intended_tag;
+                    #endif // FEDERATED_DECENTRALIZED
+                    count++;
+                }
+            }
+        }
+        {
+            int count = 0; SUPPRESS_UNUSED_WARNING(count);
+            {
+                // Add port ESPDrive.rob.lineFollower.notify1 to array of is_present fields.
+                envs[espdrive_main].is_present_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify1.is_present;
+                #ifdef FEDERATED_DECENTRALIZED
+                // Add port ESPDrive.rob.lineFollower.notify1 to array of intended_tag fields.
+                envs[espdrive_main]._lf_intended_tag_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify1.intended_tag;
+                #endif // FEDERATED_DECENTRALIZED
+                count++;
+                // Add port ESPDrive.rob.lineFollower.notify2 to array of is_present fields.
+                envs[espdrive_main].is_present_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify2.is_present;
+                #ifdef FEDERATED_DECENTRALIZED
+                // Add port ESPDrive.rob.lineFollower.notify2 to array of intended_tag fields.
+                envs[espdrive_main]._lf_intended_tag_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify2.intended_tag;
+                #endif // FEDERATED_DECENTRALIZED
+                count++;
+                // Add port ESPDrive.rob.lineFollower.notify3 to array of is_present fields.
+                envs[espdrive_main].is_present_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify3.is_present;
+                #ifdef FEDERATED_DECENTRALIZED
+                // Add port ESPDrive.rob.lineFollower.notify3 to array of intended_tag fields.
+                envs[espdrive_main]._lf_intended_tag_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify3.intended_tag;
+                #endif // FEDERATED_DECENTRALIZED
+                count++;
+                // Add port ESPDrive.rob.lineFollower.notify4 to array of is_present fields.
+                envs[espdrive_main].is_present_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify4.is_present;
+                #ifdef FEDERATED_DECENTRALIZED
+                // Add port ESPDrive.rob.lineFollower.notify4 to array of intended_tag fields.
+                envs[espdrive_main]._lf_intended_tag_fields[18 + count] = &espdrive_rob_linefollower_self[0]->_lf_notify4.intended_tag;
+                #endif // FEDERATED_DECENTRALIZED
+                count++;
+            }
+        }
     }
     // Add port ESPDrive.uart.rec to array of is_present fields.
     {
         int count = 0; SUPPRESS_UNUSED_WARNING(count);
         {
             {
-                envs[espdrive_main].is_present_fields[2 + count] = &espdrive_main_self[0]->_lf_uart.rec.is_present;
+                envs[espdrive_main].is_present_fields[22 + count] = &espdrive_main_self[0]->_lf_uart.rec.is_present;
                 #ifdef FEDERATED_DECENTRALIZED
-                envs[espdrive_main]._lf_intended_tag_fields[2 + count] = &espdrive_main_self[0]->_lf_uart.rec.intended_tag;
+                envs[espdrive_main]._lf_intended_tag_fields[22 + count] = &espdrive_main_self[0]->_lf_uart.rec.intended_tag;
                 #endif // FEDERATED_DECENTRALIZED
                 count++;
             }
@@ -890,22 +3426,9 @@ void _lf_initialize_trigger_objects() {
         int count = 0; SUPPRESS_UNUSED_WARNING(count);
         {
             {
-                envs[espdrive_main].is_present_fields[3 + count] = &espdrive_main_self[0]->_lf_d.line0.is_present;
+                envs[espdrive_main].is_present_fields[23 + count] = &espdrive_main_self[0]->_lf_d.line0.is_present;
                 #ifdef FEDERATED_DECENTRALIZED
-                envs[espdrive_main]._lf_intended_tag_fields[3 + count] = &espdrive_main_self[0]->_lf_d.line0.intended_tag;
-                #endif // FEDERATED_DECENTRALIZED
-                count++;
-            }
-        }
-    }
-    // Add port ESPDrive.d.line1 to array of is_present fields.
-    {
-        int count = 0; SUPPRESS_UNUSED_WARNING(count);
-        {
-            {
-                envs[espdrive_main].is_present_fields[4 + count] = &espdrive_main_self[0]->_lf_d.line1.is_present;
-                #ifdef FEDERATED_DECENTRALIZED
-                envs[espdrive_main]._lf_intended_tag_fields[4 + count] = &espdrive_main_self[0]->_lf_d.line1.intended_tag;
+                envs[espdrive_main]._lf_intended_tag_fields[23 + count] = &espdrive_main_self[0]->_lf_d.line0.intended_tag;
                 #endif // FEDERATED_DECENTRALIZED
                 count++;
             }
@@ -915,10 +3438,29 @@ void _lf_initialize_trigger_objects() {
         int count = 0; SUPPRESS_UNUSED_WARNING(count);
         {
             // Add port ESPDrive.uart.mess to array of is_present fields.
-            envs[espdrive_main].is_present_fields[5 + count] = &espdrive_uart_self[0]->_lf_mess.is_present;
+            envs[espdrive_main].is_present_fields[24 + count] = &espdrive_uart_self[0]->_lf_mess.is_present;
             #ifdef FEDERATED_DECENTRALIZED
             // Add port ESPDrive.uart.mess to array of intended_tag fields.
-            envs[espdrive_main]._lf_intended_tag_fields[5 + count] = &espdrive_uart_self[0]->_lf_mess.intended_tag;
+            envs[espdrive_main]._lf_intended_tag_fields[24 + count] = &espdrive_uart_self[0]->_lf_mess.intended_tag;
+            #endif // FEDERATED_DECENTRALIZED
+            count++;
+        }
+    }
+    {
+        int count = 0; SUPPRESS_UNUSED_WARNING(count);
+        {
+            // Add port ESPDrive.rob.notify to array of is_present fields.
+            envs[espdrive_main].is_present_fields[25 + count] = &espdrive_rob_self[0]->_lf_notify.is_present;
+            #ifdef FEDERATED_DECENTRALIZED
+            // Add port ESPDrive.rob.notify to array of intended_tag fields.
+            envs[espdrive_main]._lf_intended_tag_fields[25 + count] = &espdrive_rob_self[0]->_lf_notify.intended_tag;
+            #endif // FEDERATED_DECENTRALIZED
+            count++;
+            // Add port ESPDrive.rob.debug to array of is_present fields.
+            envs[espdrive_main].is_present_fields[25 + count] = &espdrive_rob_self[0]->_lf_debug.is_present;
+            #ifdef FEDERATED_DECENTRALIZED
+            // Add port ESPDrive.rob.debug to array of intended_tag fields.
+            envs[espdrive_main]._lf_intended_tag_fields[25 + count] = &espdrive_rob_self[0]->_lf_debug.intended_tag;
             #endif // FEDERATED_DECENTRALIZED
             count++;
         }
@@ -934,10 +3476,6 @@ void _lf_initialize_trigger_objects() {
         // index is the OR of level 1 and 
         // deadline 9223372036854775807 shifted left 16 bits.
         espdrive_main_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
-        espdrive_main_self[0]->_lf__reaction_2.chain_id = 1;
-        // index is the OR of level 3 and 
-        // deadline 9223372036854775807 shifted left 16 bits.
-        espdrive_main_self[0]->_lf__reaction_2.index = 0xffffffffffff0003LL;
     
         // Set reaction priorities for ReactorInstance ESPDrive.uart
         {
@@ -949,23 +3487,6 @@ void _lf_initialize_trigger_objects() {
             // index is the OR of level 2 and 
             // deadline 9223372036854775807 shifted left 16 bits.
             espdrive_uart_self[0]->_lf__reaction_1.index = 0xffffffffffff0002LL;
-        
-            // Set reaction priorities for ReactorInstance ESPDrive.uart.motors
-            {
-                espdrive_uart_motors_self[0]->_lf__reaction_0.chain_id = 1;
-                // index is the OR of level 0 and 
-                // deadline 9223372036854775807 shifted left 16 bits.
-                espdrive_uart_motors_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
-                espdrive_uart_motors_self[0]->_lf__reaction_1.chain_id = 1;
-                // index is the OR of level 3 and 
-                // deadline 9223372036854775807 shifted left 16 bits.
-                espdrive_uart_motors_self[0]->_lf__reaction_1.index = 0xffffffffffff0003LL;
-                espdrive_uart_motors_self[0]->_lf__reaction_2.chain_id = 1;
-                // index is the OR of level 4 and 
-                // deadline 9223372036854775807 shifted left 16 bits.
-                espdrive_uart_motors_self[0]->_lf__reaction_2.index = 0xffffffffffff0004LL;
-            }
-        
         }
     
     
@@ -979,6 +3500,173 @@ void _lf_initialize_trigger_objects() {
             // index is the OR of level 4 and 
             // deadline 9223372036854775807 shifted left 16 bits.
             espdrive_d_self[0]->_lf__reaction_1.index = 0xffffffffffff0004LL;
+        }
+    
+    
+        // Set reaction priorities for ReactorInstance ESPDrive.rob
+        {
+            espdrive_rob_self[0]->_lf__reaction_0.chain_id = 1;
+            // index is the OR of level 0 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            espdrive_rob_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+            espdrive_rob_self[0]->_lf__reaction_1.chain_id = 1;
+            // index is the OR of level 3 and 
+            // deadline 9223372036854775807 shifted left 16 bits.
+            espdrive_rob_self[0]->_lf__reaction_1.index = 0xffffffffffff0003LL;
+        
+            // Set reaction priorities for ReactorInstance ESPDrive.rob.motors
+            {
+                espdrive_rob_motors_self[0]->_lf__reaction_0.chain_id = 1;
+                // index is the OR of level 0 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_motors_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                espdrive_rob_motors_self[0]->_lf__reaction_1.chain_id = 1;
+                // index is the OR of level 4 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_motors_self[0]->_lf__reaction_1.index = 0xffffffffffff0004LL;
+                espdrive_rob_motors_self[0]->_lf__reaction_2.chain_id = 1;
+                // index is the OR of level 5 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_motors_self[0]->_lf__reaction_2.index = 0xffffffffffff0005LL;
+            }
+        
+        
+            // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower
+            {
+                espdrive_rob_linefollower_self[0]->_lf__reaction_0.chain_id = 1;
+                // index is the OR of level 0 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_1.chain_id = 1;
+                // index is the OR of level 1 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_2.chain_id = 1;
+                // index is the OR of level 2 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_2.index = 0xffffffffffff0002LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_3.chain_id = 1;
+                // index is the OR of level 4 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_3.index = 0xffffffffffff0004LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_4.chain_id = 1;
+                // index is the OR of level 5 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_4.index = 0xffffffffffff0005LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_5.chain_id = 1;
+                // index is the OR of level 6 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_5.index = 0xffffffffffff0006LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_6.chain_id = 1;
+                // index is the OR of level 7 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_6.index = 0xffffffffffff0007LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_7.chain_id = 1;
+                // index is the OR of level 8 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_7.index = 0xffffffffffff0008LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_8.chain_id = 1;
+                // index is the OR of level 9 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_8.index = 0xffffffffffff0009LL;
+                espdrive_rob_linefollower_self[0]->_lf__reaction_9.chain_id = 1;
+                // index is the OR of level 10 and 
+                // deadline 9223372036854775807 shifted left 16 bits.
+                espdrive_rob_linefollower_self[0]->_lf__reaction_9.index = 0xffffffffffff000aLL;
+            
+                // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.motors
+                {
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 0 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_1.chain_id = 1;
+                    // index is the OR of level 11 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_1.index = 0xffffffffffff000bLL;
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_2.chain_id = 1;
+                    // index is the OR of level 12 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    espdrive_rob_linefollower_motors_self[0]->_lf__reaction_2.index = 0xffffffffffff000cLL;
+                }
+            
+            
+                // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.gyro
+                {
+                
+                    // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.gyro.g
+                    {
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_0.chain_id = 1;
+                        // index is the OR of level 0 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.chain_id = 1;
+                        // index is the OR of level 1 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        espdrive_rob_linefollower_gyro_g_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
+                    }
+                
+                
+                    // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.gyro.integrator1
+                    {
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.chain_id = 1;
+                        // index is the OR of level 2 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        _drive_rob_linefollower_gyro_integrator1_self[0]->_lf__reaction_0.index = 0xffffffffffff0002LL;
+                    }
+                
+                
+                    // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.gyro.integrator2
+                    {
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.chain_id = 1;
+                        // index is the OR of level 2 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        _drive_rob_linefollower_gyro_integrator2_self[0]->_lf__reaction_0.index = 0xffffffffffff0002LL;
+                    }
+                
+                
+                    // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.gyro.integrator3
+                    {
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.chain_id = 1;
+                        // index is the OR of level 2 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        _drive_rob_linefollower_gyro_integrator3_self[0]->_lf__reaction_0.index = 0xffffffffffff0002LL;
+                    }
+                
+                }
+            
+            
+                // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.a_to_d
+                {
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.chain_id = 1;
+                    // index is the OR of level 0 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.chain_id = 1;
+                    // index is the OR of level 2 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_1.index = 0xffffffffffff0002LL;
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.chain_id = 1;
+                    // index is the OR of level 3 and 
+                    // deadline 9223372036854775807 shifted left 16 bits.
+                    espdrive_rob_linefollower_a_to_d_self[0]->_lf__reaction_2.index = 0xffffffffffff0003LL;
+                
+                    // Set reaction priorities for ReactorInstance ESPDrive.rob.lineFollower.a_to_d.e
+                    {
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_0.chain_id = 1;
+                        // index is the OR of level 0 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_0.index = 0xffffffffffff0000LL;
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.chain_id = 1;
+                        // index is the OR of level 1 and 
+                        // deadline 9223372036854775807 shifted left 16 bits.
+                        espdrive_rob_linefollower_a_to_d_e_self[0]->_lf__reaction_1.index = 0xffffffffffff0001LL;
+                    }
+                
+                }
+            
+            }
+        
         }
     
     }

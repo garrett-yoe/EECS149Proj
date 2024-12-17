@@ -328,6 +328,30 @@ SimpleLineFollow.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/SimpleLineFollow.c.s
 .PHONY : SimpleLineFollow.c.s
 
+_angletodistance.obj: _angletodistance.c.obj
+.PHONY : _angletodistance.obj
+
+# target to build an object file
+_angletodistance.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_angletodistance.c.obj
+.PHONY : _angletodistance.c.obj
+
+_angletodistance.i: _angletodistance.c.i
+.PHONY : _angletodistance.i
+
+# target to preprocess a source file
+_angletodistance.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_angletodistance.c.i
+.PHONY : _angletodistance.c.i
+
+_angletodistance.s: _angletodistance.c.s
+.PHONY : _angletodistance.s
+
+# target to generate assembly for a file
+_angletodistance.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_angletodistance.c.s
+.PHONY : _angletodistance.c.s
+
 _display.obj: _display.c.obj
 .PHONY : _display.obj
 
@@ -351,6 +375,78 @@ _display.s: _display.c.s
 _display.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_display.c.s
 .PHONY : _display.c.s
+
+_encoders.obj: _encoders.c.obj
+.PHONY : _encoders.obj
+
+# target to build an object file
+_encoders.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_encoders.c.obj
+.PHONY : _encoders.c.obj
+
+_encoders.i: _encoders.c.i
+.PHONY : _encoders.i
+
+# target to preprocess a source file
+_encoders.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_encoders.c.i
+.PHONY : _encoders.c.i
+
+_encoders.s: _encoders.c.s
+.PHONY : _encoders.s
+
+# target to generate assembly for a file
+_encoders.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_encoders.c.s
+.PHONY : _encoders.c.s
+
+_gyro.obj: _gyro.c.obj
+.PHONY : _gyro.obj
+
+# target to build an object file
+_gyro.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_gyro.c.obj
+.PHONY : _gyro.c.obj
+
+_gyro.i: _gyro.c.i
+.PHONY : _gyro.i
+
+# target to preprocess a source file
+_gyro.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_gyro.c.i
+.PHONY : _gyro.c.i
+
+_gyro.s: _gyro.c.s
+.PHONY : _gyro.s
+
+# target to generate assembly for a file
+_gyro.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_gyro.c.s
+.PHONY : _gyro.c.s
+
+_gyroangle.obj: _gyroangle.c.obj
+.PHONY : _gyroangle.obj
+
+# target to build an object file
+_gyroangle.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_gyroangle.c.obj
+.PHONY : _gyroangle.c.obj
+
+_gyroangle.i: _gyroangle.c.i
+.PHONY : _gyroangle.i
+
+# target to preprocess a source file
+_gyroangle.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_gyroangle.c.i
+.PHONY : _gyroangle.c.i
+
+_gyroangle.s: _gyroangle.c.s
+.PHONY : _gyroangle.s
+
+# target to generate assembly for a file
+_gyroangle.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_gyroangle.c.s
+.PHONY : _gyroangle.c.s
 
 _irsensorreader.obj: _irsensorreader.c.obj
 .PHONY : _irsensorreader.obj
@@ -447,6 +543,30 @@ _simplelinefollow_main.s: _simplelinefollow_main.c.s
 _simplelinefollow_main.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_simplelinefollow_main.c.s
 .PHONY : _simplelinefollow_main.c.s
+
+_trapezoidalintegrator.obj: _trapezoidalintegrator.c.obj
+.PHONY : _trapezoidalintegrator.obj
+
+# target to build an object file
+_trapezoidalintegrator.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_trapezoidalintegrator.c.obj
+.PHONY : _trapezoidalintegrator.c.obj
+
+_trapezoidalintegrator.i: _trapezoidalintegrator.c.i
+.PHONY : _trapezoidalintegrator.i
+
+# target to preprocess a source file
+_trapezoidalintegrator.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_trapezoidalintegrator.c.i
+.PHONY : _trapezoidalintegrator.c.i
+
+_trapezoidalintegrator.s: _trapezoidalintegrator.c.s
+.PHONY : _trapezoidalintegrator.s
+
+# target to generate assembly for a file
+_trapezoidalintegrator.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/SimpleLineFollow.dir/build.make CMakeFiles/SimpleLineFollow.dir/_trapezoidalintegrator.c.s
+.PHONY : _trapezoidalintegrator.c.s
 
 home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.obj: home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.c.obj
 .PHONY : home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.obj
@@ -2098,9 +2218,21 @@ help:
 	@echo "... SimpleLineFollow.obj"
 	@echo "... SimpleLineFollow.i"
 	@echo "... SimpleLineFollow.s"
+	@echo "... _angletodistance.obj"
+	@echo "... _angletodistance.i"
+	@echo "... _angletodistance.s"
 	@echo "... _display.obj"
 	@echo "... _display.i"
 	@echo "... _display.s"
+	@echo "... _encoders.obj"
+	@echo "... _encoders.i"
+	@echo "... _encoders.s"
+	@echo "... _gyro.obj"
+	@echo "... _gyro.i"
+	@echo "... _gyro.s"
+	@echo "... _gyroangle.obj"
+	@echo "... _gyroangle.i"
+	@echo "... _gyroangle.s"
 	@echo "... _irsensorreader.obj"
 	@echo "... _irsensorreader.i"
 	@echo "... _irsensorreader.s"
@@ -2113,6 +2245,9 @@ help:
 	@echo "... _simplelinefollow_main.obj"
 	@echo "... _simplelinefollow_main.i"
 	@echo "... _simplelinefollow_main.s"
+	@echo "... _trapezoidalintegrator.obj"
+	@echo "... _trapezoidalintegrator.i"
+	@echo "... _trapezoidalintegrator.s"
 	@echo "... home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.obj"
 	@echo "... home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.i"
 	@echo "... home/foobar/pico-sdk/lib/tinyusb/src/class/audio/audio_device.s"

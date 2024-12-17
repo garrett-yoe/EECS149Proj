@@ -68,9 +68,12 @@ CMakeFiles/SimpleLineFollow.dir/_simplelinefollow_main.c.obj: \
  /home/foobar/pico-sdk/src/rp2040/hardware_regs/include/hardware/regs/dreq.h \
  /home/foobar/pico-sdk/src/rp2_common/pico_stdio_uart/include/pico/stdio_uart.h \
  /home/foobar/pico-sdk/src/rp2_common/pico_stdio_usb/include/pico/stdio_usb.h \
+ /usr/include/newlib/string.h /usr/include/newlib/sys/_locale.h \
+ /usr/include/newlib/strings.h /usr/include/newlib/sys/string.h \
  /home/foobar/pico-sdk/src/rp2_common/hardware_adc/include/hardware/adc.h \
  /home/foobar/pico-sdk/src/rp2040/hardware_structs/include/hardware/structs/adc.h \
  /home/foobar/pico-sdk/src/rp2040/hardware_regs/include/hardware/regs/adc.h \
+ /usr/include/newlib/math.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/robot-lib/src/display.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/include/../include/api/api.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/include/../include/core/reactor.h \
@@ -84,6 +87,23 @@ CMakeFiles/SimpleLineFollow.dir/_simplelinefollow_main.c.obj: \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_simplelinefollow_main.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/include/core/reactor.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_robotlinefollower.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_gyroangle.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_trapezoidalintegrator.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/robot-lib/src/imu.h \
+ /home/foobar/pico-sdk/src/rp2_common/hardware_i2c/include/hardware/i2c.h \
+ /home/foobar/pico-sdk/src/rp2040/hardware_structs/include/hardware/structs/i2c.h \
+ /home/foobar/pico-sdk/src/rp2040/hardware_regs/include/hardware/regs/i2c.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_gyro.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_angletodistance.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_encoders.h \
+ /home/foobar/pico-sdk/src/rp2_common/hardware_pio/include/hardware/pio.h \
+ /home/foobar/pico-sdk/src/rp2040/hardware_structs/include/hardware/structs/pio.h \
+ /home/foobar/pico-sdk/src/rp2040/hardware_regs/include/hardware/regs/pio.h \
+ /home/foobar/pico-sdk/src/rp2_common/hardware_pio/include/hardware/pio_instructions.h \
+ /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/build/robot/quadrature_encoder.pio.h \
+ /home/foobar/pico-sdk/src/rp2_common/hardware_clocks/include/hardware/clocks.h \
+ /home/foobar/pico-sdk/src/rp2040/hardware_structs/include/hardware/structs/clocks.h \
+ /home/foobar/pico-sdk/src/rp2040/hardware_regs/include/hardware/regs/clocks.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_motors.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/robot-lib/src/motors.h \
  /home/foobar/EECS149Proj/PololuCharacterization/src-gen/SimpleLineFollow/_display.h \

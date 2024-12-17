@@ -6,61 +6,34 @@
 #include "include/api/set.h"
 void _uartrecreaction_function_0(void* instance_args) {
     _uartrec_self_t* self = (_uartrec_self_t*)instance_args; SUPPRESS_UNUSED_WARNING(self);
-    struct motors {
-        _motors_left_power_t* left_power;
-    _motors_right_power_t* right_power;
-    
-    } motors;
     _uartrec_mess_t* mess = &self->_lf_mess;
-    motors.left_power = &(self->_lf_motors.left_power);
-    motors.right_power = &(self->_lf_motors.right_power);
-    #line 33 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 31 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     lf_set(mess, "WAITING");
-    lf_set(motors.left_power, 0.0f);
-    lf_set(motors.right_power, 0.0f);
 }
 #include "include/api/set_undef.h"
 #include "include/api/set.h"
 void _uartrecreaction_function_1(void* instance_args) {
     _uartrec_self_t* self = (_uartrec_self_t*)instance_args; SUPPRESS_UNUSED_WARNING(self);
-    struct motors {
-        _motors_left_power_t* left_power;
-    _motors_right_power_t* right_power;
-    
-    } motors;
     _uartrec_rec_t* rec = self->_lf_rec;
     int rec_width = self->_lf_rec_width; SUPPRESS_UNUSED_WARNING(rec_width);
     _uartrec_mess_t* mess = &self->_lf_mess;
-    motors.left_power = &(self->_lf_motors.left_power);
-    motors.right_power = &(self->_lf_motors.right_power);
-    #line 40 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
-    lf_set(motors.left_power, 0.0f);
-    lf_set(motors.right_power, 0.0f);
+    #line 36 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     static char uart_buf[17];
     static int index = 0;
     if(rec->value) {
       while(uart_is_readable(UART_ID)) {
         char let = uart_getc(UART_ID);
+        if (let == '\r' || let == '\n') {
+          break;
+        }
         uart_buf[index] = let;
         index++;
       }
       uart_buf[index] = '\0';
       index = 0;
-      if (strcmp(uart_buf, "for")) {
-        lf_set(motors.left_power, 0.5f);
-        lf_set(motors.right_power, 0.5f);
-      } else if (strcmp(uart_buf, "rig")) {
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.5f);
-      } else if (strcmp(uart_buf, "lef")) {
-        lf_set(motors.left_power, 0.5f);
-        lf_set(motors.right_power, 0.0f);
-      } else {
-        lf_set(motors.left_power, 0.0f);
-        lf_set(motors.right_power, 0.0f);
-      }
       lf_set(mess, uart_buf);
-    
+    } else {
+      lf_set(mess, "sty");
     }
 }
 #include "include/api/set_undef.h"
@@ -74,36 +47,33 @@ _uartrec_self_t* new__uartrec() {
     // Set the default source reactor pointer
     #line 27 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf_default__rec._base.source_reactor = (self_base_t*)self;
-    // Set the _width variable for all cases. This will be -2
-    // if the reactor is not a bank of reactors.
-    self->_lf_motors_width = -2;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.number = 0;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.function = _uartrecreaction_function_0;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.self = self;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.deadline_violation_handler = NULL;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.STP_handler = NULL;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.name = "?";
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_0.mode = NULL;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.number = 1;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.function = _uartrecreaction_function_1;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.self = self;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.deadline_violation_handler = NULL;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.STP_handler = NULL;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.name = "?";
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__reaction_1.mode = &self->_lf__modes[0];
     #ifdef FEDERATED_DECENTRALIZED
     self->_lf__startup.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
@@ -137,13 +107,13 @@ _uartrec_self_t* new__uartrec() {
     self->_lf__rec.tmplt.type.element_size = sizeof(bool);
     // Initialize modes
     self_base_t* _lf_self_base = (self_base_t*)self;
-    #line 38 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__modes[0].state = &_lf_self_base->_lf__mode_state;
-    #line 38 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__modes[0].name = "RECEIVING";
-    #line 38 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__modes[0].deactivation_time = 0;
-    #line 38 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     self->_lf__modes[0].flags = 0;
     // Initialize mode state
     _lf_self_base->_lf__mode_state.parent_mode = NULL;

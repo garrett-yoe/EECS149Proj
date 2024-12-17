@@ -7,7 +7,7 @@
 void _irsensorreaderreaction_function_0(void* instance_args) {
     _irsensorreader_self_t* self = (_irsensorreader_self_t*)instance_args; SUPPRESS_UNUSED_WARNING(self);
     
-    #line 36 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 123 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     stdio_init_all();
         gpio_init(IR_1);
         gpio_disable_pulls(IR_1);
@@ -25,7 +25,7 @@ void _irsensorreaderreaction_function_0(void* instance_args) {
 void _irsensorreaderreaction_function_1(void* instance_args) {
     _irsensorreader_self_t* self = (_irsensorreader_self_t*)instance_args; SUPPRESS_UNUSED_WARNING(self);
     _irsensorreader_IR_1_out_t* IR_1_out = &self->_lf_IR_1_out;
-    #line 50 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 137 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
         adc_select_input(0);
         uint16_t ir_1_adc = adc_read();
        lf_set(IR_1_out, ir_1_adc);
@@ -40,7 +40,7 @@ void _irsensorreaderreaction_function_1(void* instance_args) {
 void _irsensorreaderreaction_function_2(void* instance_args) {
     _irsensorreader_self_t* self = (_irsensorreader_self_t*)instance_args; SUPPRESS_UNUSED_WARNING(self);
     _irsensorreader_IR_LEFT_out_t* IR_LEFT_out = &self->_lf_IR_LEFT_out;
-    #line 60 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 147 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     uint32_t mask = 1ul << IR_LEFT;
     lf_set(IR_LEFT_out, sio_hw->gpio_in & mask);
 }
@@ -49,95 +49,95 @@ void _irsensorreaderreaction_function_2(void* instance_args) {
 void _irsensorreaderreaction_function_3(void* instance_args) {
     _irsensorreader_self_t* self = (_irsensorreader_self_t*)instance_args; SUPPRESS_UNUSED_WARNING(self);
     _irsensorreader_IR_RIGHT_out_t* IR_RIGHT_out = &self->_lf_IR_RIGHT_out;
-    #line 64 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 151 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     uint32_t mask = 1ul << IR_RIGHT;
     lf_set(IR_RIGHT_out, sio_hw->gpio_in & mask);
 }
 #include "include/api/set_undef.h"
 _irsensorreader_self_t* new__irsensorreader() {
     _irsensorreader_self_t* self = (_irsensorreader_self_t*)_lf_new_reactor(sizeof(_irsensorreader_self_t));
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.number = 0;
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.function = _irsensorreaderreaction_function_0;
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.self = self;
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.deadline_violation_handler = NULL;
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.STP_handler = NULL;
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.name = "?";
-    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 122 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_0.mode = NULL;
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.number = 1;
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.function = _irsensorreaderreaction_function_1;
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.self = self;
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.deadline_violation_handler = NULL;
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.STP_handler = NULL;
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.name = "?";
-    #line 49 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 136 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_1.mode = NULL;
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.number = 2;
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.function = _irsensorreaderreaction_function_2;
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.self = self;
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.deadline_violation_handler = NULL;
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.STP_handler = NULL;
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.name = "?";
-    #line 59 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 146 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_2.mode = NULL;
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.number = 3;
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.function = _irsensorreaderreaction_function_3;
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.self = self;
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.deadline_violation_handler = NULL;
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.STP_handler = NULL;
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.name = "?";
-    #line 63 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 150 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__reaction_3.mode = NULL;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs.last = NULL;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     #ifdef FEDERATED_DECENTRALIZED
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     #endif // FEDERATED_DECENTRALIZED
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs_reactions[0] = &self->_lf__reaction_1;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs_reactions[1] = &self->_lf__reaction_2;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs_reactions[2] = &self->_lf__reaction_3;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs.reactions = &self->_lf__sampleIRs_reactions[0];
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs.number_of_reactions = 3;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     #ifdef FEDERATED
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     self->_lf__sampleIRs.physical_time_of_arrival = NEVER;
-    #line 34 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
+    #line 121 "/home/foobar/EECS149Proj/PololuCharacterization/src/SimpleLineFollow.lf"
     #endif // FEDERATED
     self->_lf__sampleIRs.is_timer = true;
     #ifdef FEDERATED_DECENTRALIZED

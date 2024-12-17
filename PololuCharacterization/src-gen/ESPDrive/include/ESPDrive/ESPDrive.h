@@ -1,9 +1,7 @@
 #ifndef _espdrive_main_H
 #define _espdrive_main_H
-#ifndef TOP_LEVEL_PREAMBLE_1099694603_H
-#define TOP_LEVEL_PREAMBLE_1099694603_H
-/*Correspondence: Range: [(18, 2), (19, 68)) -> Range: [(0, 0), (1, 68)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/lib/Display.lf)*/#include <pico/stdlib.h>
-#include <display.h>        // Do not use "display.h". Doesn't work.
+#ifndef TOP_LEVEL_PREAMBLE_841011642_H
+#define TOP_LEVEL_PREAMBLE_841011642_H
 /*Correspondence: Range: [(13, 2), (22, 22)) -> Range: [(0, 0), (9, 22)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf)*/#include <stdio.h>
 #include <pico/stdlib.h>
 #include <hardware/gpio.h>
@@ -14,6 +12,8 @@
 #define BAUD_RATE 115200
 #define UART_TX_PIN 28
 #define UART_RX_PIN 29
+/*Correspondence: Range: [(18, 2), (19, 68)) -> Range: [(0, 0), (1, 68)) (verbatim=true; src=/home/foobar/EECS149Proj/PololuCharacterization/src/lib/Display.lf)*/#include <pico/stdlib.h>
+#include <display.h>        // Do not use "display.h". Doesn't work.
 #endif
 #ifdef __cplusplus
 extern "C" {
@@ -82,4 +82,31 @@ typedef struct {
     string value;
 
 } display_line3_t;
+typedef struct {
+    token_type_t type;
+    lf_token_t* token;
+    size_t length;
+    bool is_present;
+    lf_port_internal_t _base;
+    string value;
+
+} robot_cmd_t;
+typedef struct {
+    token_type_t type;
+    lf_token_t* token;
+    size_t length;
+    bool is_present;
+    lf_port_internal_t _base;
+    string value;
+
+} robot_notify_t;
+typedef struct {
+    token_type_t type;
+    lf_token_t* token;
+    size_t length;
+    bool is_present;
+    lf_port_internal_t _base;
+    string value;
+
+} robot_debug_t;
 #endif

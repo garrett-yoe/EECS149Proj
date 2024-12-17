@@ -53,6 +53,11 @@ add_executable(
     _simplelinefollow_main.c
     _robotlinefollower.c
     _motors.c
+    _gyroangle.c
+    _gyro.c
+    _trapezoidalintegrator.c
+    _angletodistance.c
+    _encoders.c
     _irsensorreader.c
     _display.c
     SimpleLineFollow.c

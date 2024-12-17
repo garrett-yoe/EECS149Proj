@@ -1,10 +1,8 @@
 #ifndef _UARTREC_H
 #define _UARTREC_H
 #include "include/core/reactor.h"
-#include "_motors.h"
-#ifndef TOP_LEVEL_PREAMBLE_1099694603_H
-#define TOP_LEVEL_PREAMBLE_1099694603_H
-#include <motors.h>
+#ifndef TOP_LEVEL_PREAMBLE_841011642_H
+#define TOP_LEVEL_PREAMBLE_841011642_H
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <hardware/gpio.h>
@@ -62,16 +60,9 @@ typedef struct {
     _uartrec_mess_t _lf_mess;
     #line 28 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     int _lf_mess_width;
-    struct {
-        #line 24 "/home/foobar/EECS149Proj/PololuCharacterization/src/lib/Motors.lf"
-        _motors_left_power_t left_power;
-        #line 25 "/home/foobar/EECS149Proj/PololuCharacterization/src/lib/Motors.lf"
-        _motors_right_power_t right_power;
-    } _lf_motors;
-    int _lf_motors_width;
-    #line 32 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 30 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     reaction_t _lf__reaction_0;
-    #line 39 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
+    #line 35 "/home/foobar/EECS149Proj/PololuCharacterization/src/ESPDrive.lf"
     reaction_t _lf__reaction_1;
     trigger_t _lf__startup;
     reaction_t* _lf__startup_reactions[1];

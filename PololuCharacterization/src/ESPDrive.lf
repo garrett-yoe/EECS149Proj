@@ -3,12 +3,12 @@ target C {
     name: "rp2040",
     board: "pololu_3pi_2040_robot"
   },
-  keepalive: true,
-  threading: false
+  single_threaded: true
 }
 
 import Display from "lib/Display.lf"
 import Motors from "lib/Motors.lf"
+import RobotLineFollower from "TestAvoidance.lf"
 
 preamble {=
   #include <stdio.h>
@@ -27,54 +27,101 @@ reactor UARTrec {
   input rec: bool
   output mess: string
 
-  motors = new Motors()
-
-  reaction(startup) -> mess, motors.left_power, motors.right_power{=
+  reaction(startup) -> mess{=
     lf_set(mess, "WAITING");
-    lf_set(motors.left_power, 0.0f);
-    lf_set(motors.right_power, 0.0f);
   =}
 
   initial mode RECEIVING  {
-    reaction(rec) -> mess, motors.left_power, motors.right_power {=
-      lf_set(motors.left_power, 0.0f);
-      lf_set(motors.right_power, 0.0f);
+    reaction(rec) -> mess {=
       static char uart_buf[17];
       static int index = 0;
       if(rec->value) {
         while(uart_is_readable(UART_ID)) {
           char let = uart_getc(UART_ID);
+          if (let == '\r' || let == '\n') {
+            break;
+          }
           uart_buf[index] = let;
           index++;
         }
         uart_buf[index] = '\0';
         index = 0;
-        if (strcmp(uart_buf, "for")) {
-          lf_set(motors.left_power, 0.5f);
-          lf_set(motors.right_power, 0.5f);
-        } else if (strcmp(uart_buf, "rig")) {
-          lf_set(motors.left_power, 0.0f);
-          lf_set(motors.right_power, 0.5f);
-        } else if (strcmp(uart_buf, "lef")) {
-          lf_set(motors.left_power, 0.5f);
-          lf_set(motors.right_power, 0.0f);
-        } else {
-          lf_set(motors.left_power, 0.0f);
-          lf_set(motors.right_power, 0.0f);
-        }
         lf_set(mess, uart_buf);
-        
+      } else {
+        lf_set(mess, "sty");
       }
     =}
   }
 }
 
-main reactor {
-  timer t(0, 2000 ms)
-  state received: bool = false
+reactor Robot {
+  input cmd: string
+  output notify: string
+  output debug: string
 
+  preamble {=
+    float lpower = 0.0f;
+    float rpower = 0.0f;
+    char lastMode;
+  =}
+
+  motors = new Motors()
+  lineFollower = new RobotLineFollower()
+
+  reaction(startup) -> notify, debug {=
+    lf_set(notify, "NOTIF INIT");
+    lf_set(debug, "DEBUG INIT");
+  =}
+
+  initial mode NEED_COMMAND {
+    reaction(cmd) -> notify, debug, motors.left_power, 
+              motors.right_power, lineFollower.avoidReduceSpeed, lineFollower.avoidGoAround {=
+      static char buf[17];
+      static char deBuf[17];
+      if (strcmp(cmd->value, "sty") == 0) {
+        snprintf(buf, 17, "Staying in %c", lastMode);
+        snprintf(deBuf, 17, "cur l:%0.1f r:%0.1f", lpower, rpower);
+      } else {
+        if (strcmp(cmd->value, "for") == 0) {
+          lpower = 0.0f; rpower = 0.0f; lastMode = 'F';
+          snprintf(deBuf, 17, "LINE FOLLOWING");
+          lf_set(lineFollower.avoidReduceSpeed,false);
+        } else if (strcmp(cmd->value, "avo") == 0) {
+          lpower = 0.0f; rpower = 0.0f; lastMode = 'A';
+          snprintf(deBuf, 17, "AVOIDING BOT");
+          lf_set(lineFollower.avoidGoAround , true);
+        } else if (strcmp(cmd->value, "rig") == 0) {
+          lpower = 0.0f; rpower = 0.1f; lastMode = 'R';
+          snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
+        } else if (strcmp(cmd->value, "lef") == 0) {
+          lpower = 0.1f; rpower = 0.0f; lastMode = 'L';
+          snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
+        } else if (strcmp(cmd->value, "sto") == 0) {
+          lpower = 0.0f; rpower = 0.0f; lastMode = 'S';
+          snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
+        }
+        snprintf(buf, 17, cmd->value);
+      } 
+      lf_set(notify, buf);
+      lf_set(debug, deBuf);
+      lf_set(motors.left_power, lpower);
+      lf_set(motors.right_power, rpower);
+    =}
+  }
+}
+
+main reactor {
+  timer t(0, 1000 ms)
+  state received: bool = false
+  
   uart = new UARTrec()
   d = new Display()
+  rob = new Robot()
+
+  rob.notify->d.line1
+  rob.debug->d.line2
+  uart.mess->rob.cmd
+
   reaction(startup) {=
       stdio_init_all();
       gpio_init(PICO_DEFAULT_LED_PIN);
@@ -88,18 +135,13 @@ main reactor {
   reaction(t) -> uart.rec, d.line0 {=
     static char buf0[17];
     if (uart_is_readable(UART_ID)) {
-      snprintf(buf0, 17, "SENT");
+      snprintf(buf0, 17, "Connected");
       lf_set(uart.rec, true);
     } else {
-      snprintf(buf0, 17, "Nothing");
+      lf_set(uart.rec, false);
+      snprintf(buf0, 17, "No Connection");
     }
     lf_set(d.line0, buf0);
-  =}
-      
-  
-  reaction(uart.mess) -> d.line1 {=
-      static char buf0[17];
-      snprintf(buf0, 17, uart.mess->value);
-      lf_set(d.line1, buf0);
-  =}
+  =}   
+
 }

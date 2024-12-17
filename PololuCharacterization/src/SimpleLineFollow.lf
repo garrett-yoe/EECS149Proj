@@ -19,16 +19,79 @@
   
   preamble {=
     #include <stdio.h>
-    #include "pico/stdlib.h"
-    #include "hardware/adc.h"
+    #include <pico/stdlib.h>
+    #include <hardware/gpio.h>
+    #include <hardware/uart.h>
+    #include <string.h>
+    #include <hardware/adc.h>
+    #include <math.h>
     #define IR_1 26
     #define IR_LEFT 23
     #define IR_RIGHT 16
-    #include <math.h>
+    #define UART_ID uart0
+    #define BAUD_RATE 115200
+    #define UART_TX_PIN 28
+    #define UART_RX_PIN 29
     static float start_angle;
     static float start_dist;
-
+    // float lpower = 0.0f;
+    // float rpower = 0.0f;
+    // char lastMode;
   =}
+
+// reactor UARTrec {
+//   input rec: bool
+//   output mess: string
+//   // output avoR: bool
+//   // output avoG: bool
+//   // output rt: bool
+//   // output lt: bool
+//   // output stop: bool
+//   // output resume: bool
+//   output uart_turn_command: int
+
+//   reaction(startup) -> mess, uart_turn_command{=
+//     // lf_set(mess, "WAITING");
+    
+//   =}
+  
+//   initial mode RECEIVING  {
+//     reaction(rec) -> mess, uart_turn_command {=
+//       static char uart_buf[17];
+//       static int index = 0;
+//       if(rec->value) {
+//         while(uart_is_readable(UART_ID)) {
+//         //while(index < 3 ) {
+//           char let = uart_getc(UART_ID);
+//           if (let == '\r' || let == '\n') {
+//             break;
+//           }
+//           uart_buf[index] = let;
+//           index++;
+//         }
+//         uart_buf[index] = '\0';
+//         index = 0;
+//         if (strcmp(uart_buf, "ope") == 0) {
+//           lf_set(uart_turn_command, -1);
+//         } else if (strcmp(uart_buf, "lef" == 0)) {
+//           lf_set(uart_turn_command, 3);
+//         }
+//         // if (strcmp(uart_buf, "sto") == 0) {
+//         //   lf_set(uart_turn_command, 0);
+//         else if (strcmp(uart_buf, "rig") == 0) {
+//           lf_set(uart_turn_command, 2);
+//         }
+//         else if (strcmp(uart_buf, "clo") == 0) {
+//           lf_set(uart_turn_command, 1);
+//         }
+      
+
+        
+//       //   // lf_set(mess, uart_buf);
+//       }
+//     =}
+//   }
+// }
 
 reactor AngleToDistance {
   e = new Encoders()
@@ -53,6 +116,7 @@ reactor AngleToDistance {
     output IR_LEFT_out: bool
     output IR_RIGHT_out: bool
     output notify1: string  // ADC Reading
+    
 
     timer sampleIRs(0, 10msec)   //on-board ADCs sample at 500kHz, but we will sample slower to avoid jerky movements
     reaction(startup) {=
@@ -92,6 +156,7 @@ reactor AngleToDistance {
 
   reactor RobotLineFollower {
     input drive: bool
+    input command: string
     input IR_1_val: uint16_t // Line Following Sensor Value
     input IR_LEFT_val: bool
     input IR_RIGHT_val: bool
@@ -100,6 +165,8 @@ reactor AngleToDistance {
     output notify3: string // Right Motor Power
     output notify4: string // LR Sensors
     motors = new Motors()
+    input external_turn_command: int
+    logical action action_wait
     state next_turn: int //0 = wait for computer, -1 = left turn, 1 = right turn
     // IR = new IR()
 
@@ -113,7 +180,6 @@ reactor AngleToDistance {
 
     reaction(startup) -> notify1 {=
       lf_set(notify1, "INIT");
-      
     =}
     // notify2, notify3, motors.left_power, motors.right_power
     initial mode DRIVING {
@@ -122,8 +188,8 @@ reactor AngleToDistance {
             int median_IR_val = 500;
             float P = 0.025/350.0*3;
             int real_IR_val = IR_1_val->value;
-            float left_motor_power = 0.15+(real_IR_val-median_IR_val)*P;
-            float right_motor_power = 0.15-(real_IR_val-median_IR_val)*P;
+            float left_motor_power = 0.25+(real_IR_val-median_IR_val)*P;
+            float right_motor_power = 0.25-(real_IR_val-median_IR_val)*P;
 
             lf_set(motors.left_power, left_motor_power);
             lf_set(motors.right_power, right_motor_power);
@@ -157,8 +223,8 @@ reactor AngleToDistance {
         static char buf1[17];
         snprintf(buf1, 17, "A: %f", a_to_d.left_distance->value - start_dist);
         lf_set(notify2, buf1);
-        lf_set(motors.left_power, 0.075);
-        lf_set(motors.right_power, 0.075);  
+        lf_set(motors.left_power, 0.2);
+        lf_set(motors.right_power, 0.2);  
         
         if (a_to_d.left_distance->value - start_dist>1.5) {
           static char buf3[17];
@@ -183,7 +249,7 @@ reactor AngleToDistance {
     }
 
     mode MEDIUM_STRAIGHT {
-      reaction(a_to_d.left_distance, gyro.z) -> reset(WAITING), reset(LEFT_TURN), reset(RIGHT_TURN), notify1, notify2, motors.left_power, motors.right_power {=
+      reaction(a_to_d.left_distance, gyro.z, external_turn_command) -> action_wait, reset(LEFT_TURN), reset(RIGHT_TURN), reset(SERVO_WAIT), notify1, notify2, motors.left_power, motors.right_power {=
         
         if (self->next_turn  == -1) {
           lf_set(notify1, "MS LEFT");
@@ -201,31 +267,32 @@ reactor AngleToDistance {
         static char buf1[17];
         snprintf(buf1, 17, "A: %f", a_to_d.left_distance->value - start_dist);
         lf_set(notify2, buf1);
-        lf_set(motors.left_power, 0.15);
-          lf_set(motors.right_power, 0.15);  
+        lf_set(motors.left_power, 0.2);
+        lf_set(motors.right_power, 0.2);  
         if (a_to_d.left_distance->value - start_dist>7) {
           
           if (self->next_turn  == -1) {
             lf_set_mode(LEFT_TURN);
-            lf_set(motors.left_power, 0);
-          lf_set(motors.right_power, 0);
-            lf_set(motors.left_power, -0.2);
-            lf_set(motors.right_power, 0.2);
+          //   lf_set(motors.left_power, 0);
+          // lf_set(motors.right_power, 0);
+            lf_set(motors.left_power, -0.35);
+            lf_set(motors.right_power, 0.35);
             start_angle = gyro.z->value;
           }
           else if (self->next_turn == 1) {
-            lf_set(motors.left_power, 0);
-          lf_set(motors.right_power, 0);
-            lf_set(motors.left_power, 0.2);
-            lf_set(motors.right_power, -0.2);
+          //   lf_set(motors.left_power, 0);
+          // lf_set(motors.right_power, 0);
+            lf_set(motors.left_power, 0.4);
+            lf_set(motors.right_power, -0.4);
             lf_set_mode(RIGHT_TURN);
             start_angle = gyro.z->value;
           }
-          else {
+          else if (self->next_turn == 0){
             lf_set(motors.left_power, 0);
             lf_set(motors.right_power, 0);
             start_angle = gyro.z->value;
-            lf_set_mode(WAITING);
+            lf_schedule(action_wait, MSEC(2000));
+            lf_set_mode(SERVO_WAIT);
           }
 
         }
@@ -233,39 +300,81 @@ reactor AngleToDistance {
     }
 
     mode LEFT_TURN {
-      reaction(a_to_d.left_distance, gyro.z) -> notify1, notify2, reset(DRIVING) {=
+      reaction(a_to_d.left_distance, IR_1_val, gyro.z) -> notify1, notify2, reset(DRIVING) {=
         lf_set(notify1, "LEFT");
         static char buf[17];
         snprintf(buf, 17, "angle: %f, tot: %f", start_angle - gyro.z->value );
         lf_set(notify2, buf);
-        if (start_angle - gyro.z->value < -70) {
+        if (IR_1_val->value > 500) {
           lf_set_mode(DRIVING);
         }
       =}
     }
 
     mode RIGHT_TURN {
-      reaction(a_to_d.left_distance, gyro.z) -> notify1, notify2, reset(DRIVING) {=
+      reaction(a_to_d.left_distance, IR_1_val, gyro.z) -> notify1, notify2, reset(DRIVING) {=
         lf_set(notify1, "RIGHT");
         static char buf[17];
         snprintf(buf, 17, "angle: %f, tot: %f", start_angle - gyro.z->value );
         lf_set(notify2, buf);
-        if (start_angle - gyro.z->value > 70) {
+        if (IR_1_val->value > 500) {
           lf_set_mode(DRIVING);
         }
 
       =}
     }
 
-    mode WAITING {
-      reaction(a_to_d.left_distance) -> notify1, notify2, reset(DRIVING) {=
-        lf_set(notify1, "WAITING");
-
+    mode SERVO_WAIT {
+      reaction(action_wait) -> reset(TURN_180) {=
+        lf_set_mode(TURN_180);
       =}
+
+    }
+    mode TURN_180 {
+      
+      reaction(a_to_d.left_distance, gyro.z) -> notify1, notify2, reset(RIGHT_TURN), motors.left_power, motors.right_power  {=
+        
+        lf_set(motors.left_power, 0.45);
+        lf_set(motors.right_power, -0.45);
+        lf_set(notify1, "180");
+        static char buf[17];
+        snprintf(buf, 17, "angle: %f, tot: %f", start_angle - gyro.z->value );
+        lf_set(notify2, buf);
+        if (start_angle - gyro.z->value > 100) {
+          lf_set_mode(RIGHT_TURN);
+          lf_set(motors.left_power, 0.4);
+          lf_set(motors.right_power, -0.4);
+        }
+      =}
+      
+
     }
 
-
-
+    // mode WAITING {
+    //   reaction(a_to_d.left_distance, gyro.z, external_turn_command, t) -> notify1, notify2, reset(SERVO_WAIT), reset(LEFT_TURN), reset(RIGHT_TURN), motors.left_power, motors.right_power {=
+    //     lf_set(notify1, "WAITING");
+    //     if (external_turn_command->value == -1) {
+    //       lf_set_mode(LEFT_TURN);
+    //       lf_set(motors.left_power, -0.45);
+    //       lf_set(motors.right_power, 0.45);
+    //       start_angle = gyro.z->value;
+    //     }
+    //     else if (external_turn_command->value == 2) {
+    //       lf_set_mode(RIGHT_TURN);
+    //       lf_set(motors.left_power, 0.45);
+    //       lf_set(motors.right_power, -0.45);
+    //       start_angle = gyro.z->value;
+    //     }
+    //     else if ((external_turn_command->value == -1) || (external_turn_command->value == 1)) {
+    //       //servo close
+    //       lf_set_mode(SERVO_WAIT);
+    //       lf_set(motors.left_power, 0);
+    //       lf_set(motors.right_power, 0);
+    //       start_angle = gyro.z->value;
+          
+    //     }
+    //   =}
+    // }
   }
   
   main reactor {
@@ -281,6 +390,27 @@ reactor AngleToDistance {
     robot.notify2 -> display.line1
     robot.notify3 -> display.line2
     robot.notify4 -> display.line3
+    // uart = new UARTrec();
+    // uart.uart_turn_command -> robot.external_turn_command
+
+    // reaction(startup) {=
+    //   stdio_init_all();
+    //   uart_init(UART_ID, BAUD_RATE);
+    //   gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    //   gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+    // =}
+
+    // reaction(t) -> uart.rec {=
+    //   // static char buf0[17];
+    //   if (uart_is_readable(UART_ID)) {
+    //     // snprintf(buf0, 17, "Connected");
+    //     lf_set(uart.rec, true);
+    //   } else {
+    //     lf_set(uart.rec, false);
+    //     // snprintf(buf0, 17, "No Connection");
+    //   }
+    //   // lf_set(display.line0, buf0);
+    // =}   
   
     // reaction(t) -> robot.drive, display.line0, display.line1 {=
     //   //lf_set(robot.drive, self->drive);
