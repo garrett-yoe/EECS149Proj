@@ -8,6 +8,7 @@ target C {
 
 import Display from "lib/Display.lf"
 import Motors from "lib/Motors.lf"
+import RobotLineFollower from "TestAvoidance.lf"
 
 preamble {=
   #include <stdio.h>
@@ -65,6 +66,7 @@ reactor Robot {
   =}
 
   motors = new Motors()
+  lineFollower = new RobotLineFollower()
 
   reaction(startup) -> notify, debug {=
     lf_set(notify, "NOTIF INIT");
@@ -72,7 +74,8 @@ reactor Robot {
   =}
 
   initial mode NEED_COMMAND {
-    reaction(cmd) -> notify, debug, motors.left_power, motors.right_power {=
+    reaction(cmd) -> notify, debug, motors.left_power, 
+              motors.right_power, lineFollower.avoidReduceSpeed, lineFollower.avoidGoAround {=
       static char buf[17];
       static char deBuf[17];
       if (strcmp(cmd->value, "sty") == 0) {
@@ -80,22 +83,29 @@ reactor Robot {
         snprintf(deBuf, 17, "cur l:%0.1f r:%0.1f", lpower, rpower);
       } else {
         if (strcmp(cmd->value, "for") == 0) {
-          lpower = 0.1f; rpower = 0.1f; lastMode = 'F';
+          lpower = 0.0f; rpower = 0.0f; lastMode = 'F';
+          snprintf(deBuf, 17, "LINE FOLLOWING");
+          lf_set(lineFollower.avoidReduceSpeed,false);
+        } else if (strcmp(cmd->value, "avo") == 0) {
+          lpower = 0.0f; rpower = 0.0f; lastMode = 'A';
+          snprintf(deBuf, 17, "AVOIDING BOT");
+          lf_set(lineFollower.avoidGoAround , true);
         } else if (strcmp(cmd->value, "rig") == 0) {
           lpower = 0.0f; rpower = 0.1f; lastMode = 'R';
+          snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
         } else if (strcmp(cmd->value, "lef") == 0) {
           lpower = 0.1f; rpower = 0.0f; lastMode = 'L';
+          snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
         } else if (strcmp(cmd->value, "sto") == 0) {
           lpower = 0.0f; rpower = 0.0f; lastMode = 'S';
+          snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
         }
         snprintf(buf, 17, cmd->value);
-        snprintf(deBuf, 17, "new l:%0.1f r:%0.1f", lpower, rpower);
       } 
       lf_set(notify, buf);
       lf_set(debug, deBuf);
       lf_set(motors.left_power, lpower);
       lf_set(motors.right_power, rpower);
-      
     =}
   }
 }
