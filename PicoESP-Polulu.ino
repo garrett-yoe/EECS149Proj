@@ -15,7 +15,7 @@ uint8_t espMac[] = {0xE8, 0x9F, 0x6D, 0x24, 0x87, 0x5C};
 uint8_t broadcastAddress[] = {0xE8, 0x9F, 0x6D, 0x2F, 0xB2, 0xC4};
 
 // Serial Channel for Polulu
-HardwareSerial PolSerial(2);
+HardwareSerial PolSerial(0);
 // Servo ctrlr
 Servo clwServoL;
 Servo clwServoR;
@@ -38,28 +38,22 @@ int rxPin = 7;
 // FAKE COMPSND callback: to test middle man
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
-  if (status == 0){
-    Serial.println( "Delivery Success");
-  }
-  else{
-    Serial.println("Delivery Fail");
-  }
 }
 // FAKE COMPSND callback: to test middle man
 
 // ESP REC CALLBACK, forwards command from comp to Polulu's UART Channel
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   memcpy(&rcvCmds, incomingData, sizeof(commands));
-  if (strcmp(rcvCmds.rob1Cmd, "open") == 0) {
-    PolSerial.println("Opening Claw");
+  if (strcmp(rcvCmds.rob2Cmd, "ope") == 0) {
+    PolSerial.println(rcvCmds.rob2Cmd);
     clwServoL.write(90);
     clwServoR.write(0);
-  } else if (strcmp(rcvCmds.rob1Cmd, "close") == 0){
-    PolSerial.println("Closing Claw");
-    clwServoL.write(0);
-    clwServoR.write(90);
+  } else if (strcmp(rcvCmds.rob2Cmd, "clo") == 0){
+    PolSerial.println(rcvCmds.rob2Cmd);
+    clwServoL.write(45);
+    clwServoR.write(45);
   } else {
-    PolSerial.println(rcvCmds.rob1Cmd);
+    PolSerial.println(rcvCmds.rob2Cmd);
   }
 }
 
@@ -68,7 +62,7 @@ esp_now_peer_info_t peerInfo;
 void setup() {
   // Serial/UART Setup
   Serial.begin(115200); 
-  PolSerial.begin(115200, SERIAL_8N1, 3, 1);
+  PolSerial.begin(115200, SERIAL_8N1, rxPin, txPin);
 
   // Turn on LED for debug
   clwServoL.attach(servoPinL);
@@ -94,7 +88,4 @@ void setup() {
 
 // don't really need for polulu
 void loop() {
-  //STOPS FEEDBACK CURRENT LOG STATE
-  Serial.println("GOOD SERIAL");
-  delay(3000);
 }
