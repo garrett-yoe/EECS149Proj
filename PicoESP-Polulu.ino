@@ -50,16 +50,16 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 // ESP REC CALLBACK, forwards command from comp to Polulu's UART Channel
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   memcpy(&rcvCmds, incomingData, sizeof(commands));
-  if (strcmp(rcvCmds.rob2Cmd, "open") == 0) {
+  if (strcmp(rcvCmds.rob1Cmd, "open") == 0) {
     PolSerial.println("Opening Claw");
     clwServoL.write(90);
     clwServoR.write(0);
-  } else if (strcmp(rcvCmds.rob2Cmd, "close") == 0){
+  } else if (strcmp(rcvCmds.rob1Cmd, "close") == 0){
     PolSerial.println("Closing Claw");
     clwServoL.write(0);
     clwServoR.write(90);
   } else {
-    PolSerial.println(rcvCmds.rob2Cmd);
+    PolSerial.println(rcvCmds.rob1Cmd);
   }
 }
 
