@@ -11,10 +11,10 @@ uint8_t espMac[] = {0xE8, 0x9F, 0x6D, 0x2F, 0xB2, 0xC4};
 
 // EACH ESP32 MAC ADDRESS ON THE POLULUS
 uint8_t macAddresses[][6] = {
-    {0x40, 0x22, 0xD8, 0x5F, 0xA9, 0xF0}, // Thomas ESP32 MAC
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // Garrett ESP32 MAC
+    {0x40, 0x22, 0xD8, 0x5F, 0xA9, 0xF0}, // Thomas ESP32-WROOM MAC
+    {0xE8, 0x9F, 0x6D, 0x24, 0x87, 0x5C}, // Garrett ESP32-PICO MAC
 };
-const int numPolulus = sizeof(macAddresses) / sizeof(macAddresses[0]);
+
 
 // Message template across ESPS
 typedef struct commands {
@@ -22,7 +22,7 @@ typedef struct commands {
   char rob2Cmd[50];
 } commands;
 
-
+const int numPolulus = sizeof(macAddresses) / sizeof(macAddresses[0]);
 // ADDING EACH ESP AS A PEER/ SETTING UP EACH COMMUNICATION TO POLULUS
 void connect_to_esps() {
   for (int i = 0; i < numPolulus; i++) {
@@ -84,7 +84,7 @@ void loop(){
       }
     }
   } else {
-    if (Serial.available() > sizeof(commands)) {
+    if (Serial.available() > 0) {
       Serial.readBytes((char *)&rcvCmds, sizeof(commands));
       rcvCmds.rob1Cmd[49] = '\0';
       rcvCmds.rob2Cmd[49] = '\0';
@@ -93,7 +93,9 @@ void loop(){
       Serial.print("Told R2: ");
       Serial.println(rcvCmds.rob2Cmd);
       // FINAL -> For loop, send rob_Idx_Cmd to macAddress[Idx]
-      esp_now_send(macAddresses[0], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
+      for (int i = 0; i < numPolulus; i++) {
+        esp_now_send(macAddresses[i], (uint8_t*) &rcvCmds, sizeof(rcvCmds));
+      }
     }
   }
 }
