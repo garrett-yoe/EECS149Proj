@@ -29,7 +29,7 @@ def send_CMD(cmdList):
     packed_data = struct.pack(structFormat, rob1Cmd, rob2Cmd)
     ser.write(packed_data)
 
-valid_cmds = ["for", "lef", "rig", "sto", "clw", "avo"]
+valid_cmds = ["for", "lef", "rig", "sto", "avo", "open", "close"]
 
 cmds = []
 
@@ -56,8 +56,8 @@ handshake = False
 # Send code example: appending to list -> run list
 while True:
     if not handshake:
+        print("NEED TO CONNECT")
         if perform_handshake():
-            print("NEED TO CONNECT")
             handshake = True
     else:
         user_input = input("Enter command, 'run', or 'exit' : ")
@@ -76,7 +76,7 @@ while True:
                 r1, r1_CMD, r2, r2_CMD = parts
                 if r1_CMD not in valid_cmds or r2_CMD not in valid_cmds:
                     print(f"Invalid Cmds: P: {r1_CMD} | O: {r2_CMD}")
-                elif r1 != "pink" or r2 != "orange":
+                elif r1 != "p" or r2 != "o":
                     print(f"Invalid Robot Colors: P = {r1} | O: {r2}")
                 else:
                     print(f"Appended: P: {r1_CMD} | O: {r2_CMD}")
