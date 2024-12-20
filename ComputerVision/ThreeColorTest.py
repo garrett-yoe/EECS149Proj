@@ -25,7 +25,8 @@ if not cap.isOpened():
     print("Cannot open camera")
     exit()
 while True:
-    commands = []
+    commands = ["for", "for"]
+
     info = []
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -116,7 +117,7 @@ while True:
         #print(i)
         robot_directions[i] = direction
 
-        cv.circle(frame, center, 7, (0, 0, 255), -1)
+        #cv.circle(frame, center, 7, (0, 0, 255), -1)
         cv.circle(frame, real_end, 7, (255, 255, 255), -1)
 
         cv.putText(frame, f"{direction:.2f}", (cx - 20, cy - 20),
@@ -175,14 +176,14 @@ while True:
 
 
     #cargo pickup area
-    pt1 = (370, 30)
+    pt1 = (250, 30)
     pt2 = (500, 300)
     cv.putText(frame, "cargo pickup pink", pt1,
                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
 
     if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
-        commands.append("pink close")
+        commands[0] = "clo"
 
     pt1 = (350, 900)
     pt2 = (480, 1080)
@@ -191,16 +192,16 @@ while True:
     cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
 
     if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
-        commands.append("orange close")
+        commands[1] = "clo"
 
-    pt1 = (1230, 860)
-    pt2 = (1380, 1070)
+    pt1 = (925, 780)
+    pt2 = (1230, 1070)
     cv.putText(frame, "storage pink", pt1,
                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
 
     if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
-        commands.append("pink open")
+        commands[0] = "ope"
 
 
     pt1 = (1300, 20)
@@ -210,8 +211,7 @@ while True:
     cv.rectangle(frame, pt1, pt2, (0, 255, 0), 3)
 
     if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
-        commands.append("orange open")
-
+        commands[1] = "ope"
     pt1 = (32, 320)
     pt2 = (280, 680)
     cv.putText(frame, "intersection 1", pt1,
@@ -220,17 +220,17 @@ while True:
 
     if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
         info.append("orange at intersection 1")
-        if 140 < robot_directions[1] and -140 > robot_directions[1]:
-            commands.append("orange turn left")
+        if 140 < robot_directions[1] or -140 > robot_directions[1]:
+            commands[1] = "lef"
         elif 50 < robot_directions[1] < 130:
-            commands.append("orange right")
+            commands[1] = "rig"
 
     if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
         info.append("pink at intersection 1")
-        if 140 < robot_directions[0] and -140 > robot_directions[0]:
-            commands.append("pink turn right")
+        if 140 < robot_directions[0] or -140 > robot_directions[0]:
+            commands[0] = "rig"
         elif -50 > robot_directions[0] > -130:
-            commands.append("pink left")
+            commands[0] = "lef"
 
 
     pt1 = (1420, 320)
@@ -242,17 +242,17 @@ while True:
     if pt1[0] < robot_positions[1][0] < pt2[0] and pt1[1] < robot_positions[1][1] < pt2[1]:
         info.append("orange at intersection 2")
         if -40 < robot_directions[1] < 40:
-            commands.append("orange left")
+            commands[1] = "lef"
         elif -50 > robot_directions[1] > -130:
-            commands.append("orange right")
+            commands[1] = "rig"
 
 
     if pt1[0] < robot_positions[0][0] < pt2[0] and pt1[1] < robot_positions[0][1] < pt2[1]:
         info.append("pink at intersection 2")
         if -40 < robot_directions[0] < 40:
-            commands.append("pink turn right")
+            commands[0] = "rig"
         elif 50 < robot_directions[0] < 130:
-            commands.append("pink left")
+            commands[0] = "lef"
 
     pt1 = (560, 400)
     pt2 = (1200, 680)
@@ -305,18 +305,18 @@ while True:
     if (orange_in_busy_zone1 or pink_in_busy_zone1):
         if (orange_in_wait_zone):
             if (abs(robot_directions[1]) > 150):
-                commands.append("orange stop")
+                commands[1] = "sto"
         if (pink_in_wait_zone):
             if (abs(robot_directions[0]) > 150):
-                commands.append("pink stop")
+                commands[0] = "sto"
 
     if (orange_in_busy_zone2 or pink_in_busy_zone2):
         if (orange_in_wait_zone):
             if (abs(robot_directions[1]) < 40):
-                commands.append("orange stop")
+                commands[1] = "sto"
         if (pink_in_wait_zone):
             if (abs(robot_directions[0]) < 40):
-                commands.append("pink stop")
+                commands[0] = "sto"
 
 
 
@@ -326,9 +326,11 @@ while True:
     min_distance = 350
     distance_between = np.sqrt(
         (robot_positions[0][0] - robot_positions[1][0]) ** 2 + (robot_positions[0][1] - robot_positions[1][1]) ** 2)
+    distance_between_x = abs(robot_positions[0][0] - robot_positions[1][0])
+    distance_between_y = abs(robot_positions[0][1] - robot_positions[1][1])
     info.append(f"dis {distance_between}")
 
-    if (distance_between < min_distance):
+    if (distance_between_x < min_distance and distance_between_y < 50):
 
         info.append("robots touching")
         VAL = (robot_directions[0] - robot_directions[1]) % 360
@@ -343,23 +345,31 @@ while True:
                 else:
                     a = 1
                     info.append("robots avoiding")
-                commands.append(f"{names[a]} stop, {names[1 - a]} pass")
+                commands[a] = "sto"
+                commands[1-a] = "avo"
                 last_time = time.time()
         else:
             info.append("robot passing")
             if (abs(robot_directions[0]) > 150):
                 if (robot_positions[0][0] > robot_positions[1][0]):
-                    commands.append("pink pass")
+                    commands[0] = "avo"
+                    commands[1] = "sto"
                 else:
-                    commands.append("orange pass")
+                    commands[1] = "avo"
+                    commands[0] = "sto"
             elif (abs(robot_directions[0] < 30)):
                 if (robot_positions[0][0] > robot_positions[1][0]):
-                    commands.append("orange pass")
+                    commands[1] = "avo"
+                    commands[0] = "sto"
                 else:
-                    commands.append("pink pass")
+                    commands[0] = "avo"
+                    commands[1] = "sto"
 
-    cv.putText(frame, ' '.join(commands), (10, 10),
-               cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    print(commands)
+
+    command_text = f"pink {commands[0]}, orange {commands[1]}"
+    cv.putText(frame, command_text, (10, 50),
+               cv.FONT_HERSHEY_SIMPLEX, 3, (255, 255, 255), 5)
 
     cv.putText(frame, ' '.join(info), (700, 200),
                cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
@@ -371,7 +381,11 @@ while True:
 
 
     # Display the resulting frame
-    print(commands)
+    print(command_text)
+
+    with open("shared_data.txt", "w") as f:
+        f.write(f"p {commands[0]} o {commands[1]}")
+
     cv.imshow('frame', frame)
     #cv.imshow('mask', blue_mask)
     #cv.imshow('res', res)
